@@ -18,15 +18,6 @@
 #include "hprof_types.h"
 
 namespace hprof {
-    struct hprof_name_entry {
-        char letter;
-        // std::unordered_map<char, hprof_name_entry> nodes;
-        std::vector<class_info_ptr_t> classes;
-
-        hprof_name_entry() : letter(0) {
-        }
-    };
-
     class dump_data_t {
     public:
         dump_data_t(size_t id_size, const time_t& time) : _id_size(id_size), _time(time), _is_index_built(false) {}
@@ -46,9 +37,9 @@ namespace hprof {
         const std::string& get_string(id_t id) const;
 
     private:
-        bool append_gc_roots();
-        bool append_classes_to_instances();
-        bool build_classes_search_tree();
+        bool prepare_gc_roots();
+        bool prepare_classes();
+        bool prepare_instances();
     private:
         size_t _id_size;
         time_t _time;
@@ -58,6 +49,5 @@ namespace hprof {
         std::vector<gc_root_t> _gc_roots;
         classes_map_t _classes;
         strings_map_t _strings;
-        hprof_name_entry _classes_root;
     };
 }

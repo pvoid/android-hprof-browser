@@ -17,6 +17,7 @@
 
 #include "hprof_data_reader_factory_test.h"
 #include "hprof_istream_test.h"
+#include "name_tokenizer_test.h"
 
 int main(int argc, char* argv[]) {
     ::testing::InitGoogleTest(&argc, argv);

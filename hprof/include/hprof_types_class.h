@@ -16,6 +16,7 @@
 #pragma once
 
 #include "hprof_types_base.h"
+#include "name_tokenizer.h"
 #include <type_traits>
 #include <unordered_map>
 
@@ -29,6 +30,7 @@ namespace hprof {
         id_t super_id;
         id_t class_loader_id;
         id_t name_id;
+        name_tokens tokens;
         int32_t seq_number;
         int32_t stack_trace_id;
         int32_t size;

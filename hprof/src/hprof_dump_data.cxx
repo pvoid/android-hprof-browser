@@ -73,14 +73,15 @@ bool dump_data_t::analyze() {
         return false;
     }
 
-    append_gc_roots();
-    append_classes_to_instances();
+    prepare_gc_roots();
+    prepare_classes();
+    prepare_instances();
 
     _is_index_built = true;
     return true;
 }
 
-bool dump_data_t::append_gc_roots() {
+bool dump_data_t::prepare_gc_roots() {
     for(auto& root : _gc_roots) {
         auto item = _all.find(root.object_id);
         if (item != std::end(_all)) {
@@ -103,7 +104,18 @@ bool dump_data_t::append_gc_roots() {
     return true;
 }
 
-bool dump_data_t::append_classes_to_instances() {
+bool dump_data_t::prepare_classes() {
+    for (auto current = std::begin(_classes); current != std::end(_classes); ++current) {
+        auto name = _strings.find(current->second->name_id);
+        if (name == std::end(_strings)) {
+            continue;
+        }
+        current->second->tokens.set(name->second);
+    }
+    return true;
+}
+
+bool dump_data_t::prepare_instances() {
     for (auto current = std::begin(_all); current != std::end(_all); ++current) {
         if (current->second->type() != object_info_t::TYPE_INSTANCE) {
             continue;
