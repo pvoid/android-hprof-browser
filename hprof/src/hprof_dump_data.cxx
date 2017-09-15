@@ -134,13 +134,6 @@ void dump_data_t::print_stats() const {
     std::cout << "Instances: " << _all.size() << std::endl;
 }
 
-bool dump_data_t::get_classes(std::vector<class_info_ptr_t>& classes) const {
-    for (auto it = std::begin(_classes); it != std::end(_classes); ++it) {
-        classes.push_back(it->second);
-    }
-    return true;
-}
-
 const std::string& dump_data_t::get_string(id_t id) const {
     auto item = _strings.find(id);
     if (item == std::end(_strings)) {

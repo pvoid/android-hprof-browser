@@ -26,14 +26,18 @@ namespace hprof {
         size_t id_size() const { return _id_size; }
         const time_t& time() const { return _time; }
 
+        bool analyze();
         bool add(const std::vector<gc_root_t>& roots);
         bool add(const instances_map_t& instances);
         bool add(const classes_map_t& classes);
         bool add(const strings_map_t& strings);
         bool add(const array_map_t& arrays);
         void print_stats() const;
-        bool analyze();
-        bool get_classes(std::vector<class_info_ptr_t>& classes) const;
+        template<typename BinaryPredicate>
+        bool get_classes(std::vector<class_info_ptr_t>& classes, BinaryPredicate predicate) const;
+        bool get_classes(std::vector<class_info_ptr_t>& classes) const {
+            return get_classes(classes, [] (auto item) -> bool { return true; });
+        }
         const std::string& get_string(id_t id) const;
 
     private:
@@ -50,4 +54,19 @@ namespace hprof {
         classes_map_t _classes;
         strings_map_t _strings;
     };
+
+    template<typename BinaryPredicate>
+    inline bool dump_data_t::get_classes(std::vector<class_info_ptr_t>& classes, BinaryPredicate predicate) const {
+        if (!_is_index_built) {
+            return false;
+        }
+
+        for (auto item : _classes) {
+            if (!predicate(*item.second)) {
+                continue;
+            }
+            classes.push_back(item.second);
+        }
+        return true;
+    }
 }
