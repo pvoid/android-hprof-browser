@@ -20,5 +20,6 @@ file(GLOB SOURCE_FILES ${PROJECT_SOURCE_DIR}/src/*.cxx)
 
 include_directories(${hprof-library_INCLUDE_DIRS})
 
-add_executable(hprof-cli ${SOURCE_FILES})
+add_executable(${PROJECT_NAME} ${SOURCE_FILES})
+set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 14)
 target_link_libraries(hprof-cli hprof-library)

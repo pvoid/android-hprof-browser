@@ -41,13 +41,13 @@ public:
     }
 
     u_int8_t read_byte() {
-        char data;
+        char data = 0;
         _stream.get(data);
         return static_cast<u_int8_t>(data);
     }
 
     char read_char() {
-        char data;
+        char data = 0;
         _stream.get(data);
         return data;
     }

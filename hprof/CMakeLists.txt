@@ -23,6 +23,7 @@ include_directories(${PROJECT_SOURCE_DIR}/include/)
 file(GLOB SOURCE_FILES ${PROJECT_SOURCE_DIR}/src/*.cxx)
 
 add_library(${PROJECT_NAME} ${SOURCE_FILES})
+set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 14)
 
 set(${PROJECT_NAME}_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/include/
     CACHE INTERNAL "${PROJECT_NAME}: Include Directories" FORCE)
@@ -33,5 +34,6 @@ include_directories(${GTEST_INCLUDE_DIRS})
 file(GLOB TEST_SOURCE_FILES ${PROJECT_SOURCE_DIR}/test/*.cxx)
 add_definitions(-DTEST_DATA_DIR="${PROJECT_SOURCE_DIR}/test-data")
 add_executable(${PROJECT_NAME}-test ${SOURCE_FILES} ${TEST_SOURCE_FILES})
-
+set_property(TARGET ${PROJECT_NAME}-test PROPERTY CXX_STANDARD 14)
 target_link_libraries(${PROJECT_NAME}-test ${CMAKE_THREAD_LIBS_INIT} gtest)
+add_test(${PROJECT_NAME} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${PROJECT_NAME}-test)
