@@ -16,9 +16,10 @@
 #pragma once
 
 #include "hprof_types.h"
+#include "filters.h"
 
 namespace hprof {
-    class dump_data_t {
+    class dump_data_t : filter_helper_t {
     public:
         dump_data_t(size_t id_size, const time_t& time) : _id_size(id_size), _time(time), _is_index_built(false) {}
         ~dump_data_t() {}
@@ -33,17 +34,16 @@ namespace hprof {
         bool add(const strings_map_t& strings);
         bool add(const array_map_t& arrays);
         void print_stats() const;
-        template<typename BinaryPredicate>
-        bool get_classes(std::vector<class_info_ptr_t>& classes, BinaryPredicate predicate) const;
-        bool get_classes(std::vector<class_info_ptr_t>& classes) const {
-            return get_classes(classes, [] (auto item) -> bool { return true; });
-        }
+        bool get_classes(std::vector<class_info_ptr_t>& classes, const filter_t& filter) const;
+        bool get_instances(std::vector<object_info_ptr_t>& objects, const filter_t& filter) const;
         const std::string& get_string(id_t id) const;
 
     private:
         bool prepare_gc_roots();
         bool prepare_classes();
         bool prepare_instances();
+
+        virtual class_info_ptr_t get_class_by_id(id_t id) const override;
     private:
         size_t _id_size;
         time_t _time;
@@ -54,19 +54,4 @@ namespace hprof {
         classes_map_t _classes;
         strings_map_t _strings;
     };
-
-    template<typename BinaryPredicate>
-    inline bool dump_data_t::get_classes(std::vector<class_info_ptr_t>& classes, BinaryPredicate predicate) const {
-        if (!_is_index_built) {
-            return false;
-        }
-
-        for (auto item : _classes) {
-            if (!predicate(*item.second)) {
-                continue;
-            }
-            classes.push_back(item.second);
-        }
-        return true;
-    }
 }

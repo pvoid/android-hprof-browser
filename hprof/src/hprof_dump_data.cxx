@@ -142,3 +142,54 @@ const std::string& dump_data_t::get_string(id_t id) const {
 
     return item->second;
 }
+
+bool dump_data_t::get_classes(std::vector<class_info_ptr_t>& classes, const filter_t& filter) const {
+    if (!_is_index_built) {
+        return false;
+    }
+
+    for (auto item : _classes) {
+        switch (filter(item.second.get(), *this)) {
+            case filter_t::Match:
+                classes.push_back(item.second);
+                break;
+            case filter_t::NoMatch:
+                continue;
+            case filter_t::Fail:
+            default:
+                return false;
+        }
+    }
+
+    return true;
+}
+
+bool dump_data_t::get_instances(std::vector<object_info_ptr_t>& objects, const filter_t& filter) const {
+    if (!_is_index_built) {
+        return false;
+    }
+
+    for (auto item : _all) {
+        switch (filter(item.second.get(), *this)) {
+            case filter_t::Match:
+                objects.push_back(item.second);
+                break;
+            case filter_t::NoMatch:
+                continue;
+            case filter_t::Fail:
+            default:
+                return false;
+        }
+    }
+
+    return true;
+}
+
+class_info_ptr_t dump_data_t::get_class_by_id(id_t id) const {
+    auto result = _classes.find(id);
+    if (result == std::end(_classes)) {
+        return class_info_ptr_t {};
+    }
+
+    return result->second;
+}
