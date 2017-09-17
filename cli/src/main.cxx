@@ -46,17 +46,16 @@ int main(int argc, char* argv[]) {
     hprof->analyze();
 
     std::vector<class_info_ptr_t> classes;
-    hprof->get_classes(classes);
+
+    hprof->get_classes(classes, filter_class_name_t { "android.view.View" });
 
     std::cout << "Classes: " << classes.size() << std::endl << std::endl;
 
     std::sort(std::begin(classes), std::end(classes),
         [] (auto& left, auto& right) -> bool { return left->instances.size() > right->instances.size(); });
 
-    size_t count = 10;
     for (auto& item : classes) {
         std::cout << hprof->get_string(item->name_id) << " instances: " << item->instances.size() << std::endl;
-        if (--count == 0) break;
     }
 
     auto spent_time = steady_clock::now() - start;
