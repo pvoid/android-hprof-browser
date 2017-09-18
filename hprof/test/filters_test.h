@@ -52,34 +52,36 @@ TEST(Filters, FilterOr) {
 }
 
 TEST(Filters, FilterClassNameSameClass) {
-    class_info_t cls;
-    cls.tokens.set("com.android.View");
+    class_info_impl_t cls;
+    cls.set_name("com.android.View");
 
     filter_class_name_t filter { "com.android" };
     ASSERT_EQ(filter_t::Match, filter(&cls, mock_filter_helper_t {}));
 }
 
 TEST(Filters, FilterClassNameNotSameClass) {
-    class_info_t cls;
-    cls.tokens.set("java.lang.String");
+    class_info_impl_t cls;
+    cls.set_name("java.lang.String");
 
     filter_class_name_t filter { "com.android" };
     ASSERT_EQ(filter_t::NoMatch, filter(&cls, mock_filter_helper_t {}));
 }
 
 TEST(Filters, FilterClassNameInstanceSameClass) {
-    instance_info_t instance {0, 0, 0, 0};
-    instance.class_instance = std::make_shared<class_info_t>();
-    instance.class_instance->tokens.set("com.android.View");
+    instance_info_impl_t instance {0, 0, 0, 0};
+    auto class_instance = std::make_shared<class_info_impl_t>();
+    class_instance->set_name("com.android.View");
+    instance.set_class(class_instance);
 
     filter_class_name_t filter { "com.android" };
     ASSERT_EQ(filter_t::Match, filter(&instance, mock_filter_helper_t {}));
 }
 
 TEST(Filters, FilterClassNameInstanceNotSameClass) {
-    instance_info_t instance {0, 0, 0, 0};
-    instance.class_instance = std::make_shared<class_info_t>();
-    instance.class_instance->tokens.set("java.lang.String");
+    instance_info_impl_t instance {0, 0, 0, 0};
+    auto class_instance = std::make_shared<class_info_impl_t>();
+    class_instance->set_name("java.lang.String");
+    instance.set_class(class_instance);
 
     filter_class_name_t filter { "com.android" };
     ASSERT_EQ(filter_t::NoMatch, filter(&instance, mock_filter_helper_t {}));
@@ -101,9 +103,10 @@ TEST(Filters, FilterClassNameObjectArray) {
 
 TEST(Filters, FilterInstanceOfDirectClassMatch) {
     mock_filter_helper_t helper {};
-    instance_info_t instance {0, 0, 0, 0};
-    instance.class_instance = std::make_shared<class_info_t>();
-    instance.class_instance->name_id = 1;
+    instance_info_impl_t instance {0, 0, 0, 0};
+    auto class_instance = std::make_shared<class_info_impl_t>();
+    class_instance->set_name_id(1);
+    instance.set_class(class_instance);
     helper.add(1, "com.android.View");
 
     filter_instance_of_t filter { "com.android.View" };
@@ -115,16 +118,17 @@ TEST(Filters, FilterInstanceOfSubClassMatch) {
     helper.add(1, "com.android.GroupView");
     helper.add(2, "com.android.View");
 
-    instance_info_t instance {0, 0, 0, 0};
-    instance.class_instance = std::make_shared<class_info_t>();
-    instance.class_instance->class_id = 1;
-    instance.class_instance->name_id = 1;
-    instance.class_instance->super_id = 2;
+    instance_info_impl_t instance {0, 1, 0, 0};
+    auto class_instance = std::make_shared<class_info_impl_t>();
+    class_instance->set_class_id(1);
+    class_instance->set_name_id(1);
+    class_instance->set_super_id(2);
+    instance.set_class(class_instance);
 
-    auto super_class = std::make_shared<class_info_t>();
-    super_class->class_id = 2;
-    super_class->super_id = 0;
-    super_class->name_id = 2;
+    auto super_class = std::make_shared<class_info_impl_t>();
+    super_class->set_class_id(2);
+    super_class->set_super_id(0);
+    super_class->set_name_id(2);
     helper.add(super_class);
 
     filter_instance_of_t filter { "com.android.View" };
@@ -133,9 +137,10 @@ TEST(Filters, FilterInstanceOfSubClassMatch) {
 
 TEST(Filters, FilterInstanceOfDirectClassNoMatch) {
     mock_filter_helper_t helper {};
-    instance_info_t instance {0, 0, 0, 0};
-    instance.class_instance = std::make_shared<class_info_t>();
-    instance.class_instance->name_id = 1;
+    instance_info_impl_t instance {0, 0, 0, 0};
+    auto class_instance = std::make_shared<class_info_impl_t>();
+    class_instance->set_name_id(1);
+    instance.set_class(class_instance);
     helper.add(1, "com.android.View");
 
     filter_instance_of_t filter { "java.lang.String" };
@@ -147,16 +152,17 @@ TEST(Filters, FilterInstanceOfSubClassNoMatch) {
     helper.add(1, "com.android.GroupView");
     helper.add(2, "com.android.View");
 
-    instance_info_t instance {0, 0, 0, 0};
-    instance.class_instance = std::make_shared<class_info_t>();
-    instance.class_instance->class_id = 1;
-    instance.class_instance->name_id = 1;
-    instance.class_instance->super_id = 2;
+    instance_info_impl_t instance {0, 1, 0, 0};
+    auto class_instance = std::make_shared<class_info_impl_t>();
+    class_instance->set_class_id(1);
+    class_instance->set_name_id(1);
+    class_instance->set_super_id(2);
+    instance.set_class(class_instance);
 
-    auto super_class = std::make_shared<class_info_t>();
-    super_class->class_id = 2;
-    super_class->super_id = 0;
-    super_class->name_id = 2;
+    auto super_class = std::make_shared<class_info_impl_t>();
+    super_class->set_class_id(2);
+    super_class->set_super_id(0);
+    super_class->set_name_id(2);
     helper.add(super_class);
 
     filter_instance_of_t filter { "java.lang.String" };

@@ -17,6 +17,7 @@
 
 #include "hprof_types_base.h"
 #include "hprof_types_class.h"
+#include "hprof_istream.h"
 
 #include <unordered_map>
 #include <memory>
@@ -26,41 +27,33 @@ namespace hprof {
     using std::unordered_map;
     using std::shared_ptr;
 
-    struct instance_info_t : object_info_t {
-        id_t object_id;
-        id_t class_id;
-        class_info_ptr_t class_instance;
-        int32_t stack_trace_id;
-        int32_t size;
-        u_int8_t *data;
-
-        instance_info_t(id_t id, id_t class_id, int32_t stack_id, int32_t size) :
-            object_id(id), class_id(class_id), stack_trace_id(stack_id), size(size), data(reinterpret_cast<u_int8_t*>(this) + sizeof(instance_info_t)) {
-        }
-
+    class instance_info_t : public object_info_t {
+    public:
         instance_info_t(const instance_info_t&) = delete;
         instance_info_t(instance_info_t&&) = delete;
 
         instance_info_t& operator=(const instance_info_t&) = delete;
         instance_info_t& operator=(instance_info_t&&) = delete;
 
-        id_t id() const override { return object_id; }
+        id_t id() const override { return _object_id; }
 
         object_type_t type() const override { return TYPE_INSTANCE; }
 
+        id_t class_id() const { return _class_id; }
+
         int32_t has_link_to(id_t id) const override {
-            assert(class_instance != nullptr);
+            assert(_class_instance != nullptr);
 
             int32_t result = 0;
 
-            if (class_id == id) {
+            if (_class_id == id) {
                 result |= link_t::TYPE_INSTANCE;
             }
 
             id_t field_value;
-            for (auto index = 0; index < class_instance->fields.size(); ++index) {
-                if (class_instance->fields[index].type == field_info_t::TYPE_OBJECT) {
-                    if (!class_instance->read_field_value(data, index, field_value)) {
+            for (size_t index = 0, count = _class_instance->fields_count(); index < count; ++index) {
+                if (_class_instance->field_type(index) == field_info_t::TYPE_OBJECT) {
+                    if (!_class_instance->read_field_value(_data, index, field_value)) {
                         continue;
                     }
                     if (field_value == id) {
@@ -72,8 +65,37 @@ namespace hprof {
 
             return result;
         }
+
+        const class_info_ptr_t get_class() const { return _class_instance; }
+    protected:
+        instance_info_t(id_t id, id_t class_id, int32_t stack_id, int32_t size) :
+            _object_id(id), _class_id(class_id), _stack_trace_id(stack_id), _size(size), _data(reinterpret_cast<u_int8_t*>(this) + sizeof(instance_info_t)) {
+        }
+    protected:
+        id_t _object_id;
+        id_t _class_id;
+        class_info_ptr_t _class_instance;
+        int32_t _stack_trace_id;
+        int32_t _size;
+        u_int8_t* _data;
     };
 
     using instance_info_ptr_t = shared_ptr<instance_info_t>;
-    using instances_map_t = unordered_map<id_t, instance_info_ptr_t>;
+
+    class instance_info_impl_t : public instance_info_t {
+    public:
+        instance_info_impl_t(id_t id, id_t class_id, int32_t stack_id, int32_t size) : instance_info_t(id, class_id, stack_id, size) {}
+
+        void read_data(hprof_istream& in) {
+            in.read_bytes(_data, _size);
+        }
+
+        void set_class(class_info_ptr_t cls) {
+            assert(_class_id == cls->id());
+            _class_instance = cls;
+        }
+    };
+
+    using instance_info_impl_ptr_t = shared_ptr<instance_info_impl_t>;
+    using instances_map_t = unordered_map<id_t, instance_info_impl_ptr_t>;
 }

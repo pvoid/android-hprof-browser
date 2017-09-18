@@ -16,7 +16,8 @@
 #pragma once
 
 namespace hprof {
-    struct gc_root_t {
+    class gc_root_t {
+    public:
         enum root_type_t {
             INVALID,
             UNKNOWN,
@@ -36,51 +37,109 @@ namespace hprof {
             JNI_MONITOR,
             UNREACHABLE
         };
+    public:
+        root_type_t type() const { return _root_type; }
+        id_t object_id() const { return _object_id; }
 
-        root_type_t root_type;
-        int32_t heap_type;
-        id_t object_id;
+    public:
+        template<root_type_t type>
+        static gc_root_t create(id_t object_id = 0) {
+            return gc_root_t { type, object_id };
+        }
+
+        template<root_type_t type>
+        static gc_root_t create(id_t object_id, int32_t) = delete;
+
+        template<root_type_t type>
+        static gc_root_t create(id_t object_id, int32_t, int32_t) = delete;
+
+    private:
+        explicit gc_root_t(root_type_t type = INVALID, id_t object_id = 0) : _root_type(type), _object_id(object_id) {}
+
+    private:
+        root_type_t _root_type;
+        int32_t _heap_type;
+        id_t _object_id;
 
         union {
             struct {
-                // cppcheck-suppress unusedStructMember
                 int32_t jni_ref;
-            } root_jni_global;
+            } _root_jni_global;
             struct {
-                // cppcheck-suppress unusedStructMember
                 int32_t thread_seq_num;
-                // cppcheck-suppress unusedStructMember
                 int32_t stack_frame_id;
-            } root_jni_local;
+            } _root_jni_local;
             struct {
-                // cppcheck-suppress unusedStructMember
                 int32_t thread_seq_num;
-                // cppcheck-suppress unusedStructMember
                 int32_t stack_frame_id;
-            } java_frame;
+            } _java_frame;
             struct {
-                // cppcheck-suppress unusedStructMember
                 int32_t thread_seq_num;
-            } native_stack;
+            } _native_stack;
             struct {
-                // cppcheck-suppress unusedStructMember
                 int32_t thread_seq_num;
-            } thread_block;
+            } _thread_block;
             struct {
-                // cppcheck-suppress unusedStructMember
                 int32_t thread_seq_num;
-                // cppcheck-suppress unusedStructMember
-                int32_t stack_trace_id;
-            } thread_object;
+                int32_t stack_frame_id;
+            } _thread_object;
             struct {
-                // cppcheck-suppress unusedStructMember
                 int32_t thread_seq_num;
-                // cppcheck-suppress unusedStructMember
-                int32_t stack_trace_id;
-            } jni_monitor;
+                int32_t stack_frame_id;
+            } _jni_monitor;
         };
-
-        explicit gc_root_t(root_type_t type = INVALID) : root_type(type), object_id(0) {
-        }
     };
+
+    template<>
+    inline gc_root_t gc_root_t::create<gc_root_t::JNI_GLOBAL>(id_t object_id, int32_t ref) {
+        gc_root_t root { gc_root_t::JNI_GLOBAL, object_id };
+        root._root_jni_global.jni_ref = ref;
+        return root;
+    }
+
+    template<>
+    inline gc_root_t gc_root_t::create<gc_root_t::JNI_LOCAL>(id_t object_id, int32_t thread_seq_num, int32_t stack_frame_id) {
+        gc_root_t root { gc_root_t::JNI_LOCAL, object_id };
+        root._root_jni_local.thread_seq_num = thread_seq_num;
+        root._root_jni_local.stack_frame_id = stack_frame_id;
+        return root;
+    }
+
+    template<>
+    inline gc_root_t gc_root_t::create<gc_root_t::JAVA_FRAME>(id_t object_id, int32_t thread_seq_num, int32_t stack_frame_id) {
+        gc_root_t root { gc_root_t::JNI_LOCAL, object_id };
+        root._java_frame.thread_seq_num = thread_seq_num;
+        root._java_frame.stack_frame_id = stack_frame_id;
+        return root;
+    }
+
+    template<>
+    inline gc_root_t gc_root_t::create<gc_root_t::NATIVE_STACK>(id_t object_id, int32_t thread_seq_num) {
+        gc_root_t root { gc_root_t::NATIVE_STACK, object_id };
+        root._native_stack.thread_seq_num = thread_seq_num;
+        return root;
+    }
+
+    template<>
+    inline gc_root_t gc_root_t::create<gc_root_t::THREAD_BLOCK>(id_t object_id, int32_t thread_seq_num) {
+        gc_root_t root { gc_root_t::THREAD_BLOCK, object_id };
+        root._thread_block.thread_seq_num = thread_seq_num;
+        return root;
+    }
+
+    template<>
+    inline gc_root_t gc_root_t::create<gc_root_t::THREAD_OBJECT>(id_t object_id, int32_t thread_seq_num, int32_t stack_frame_id) {
+        gc_root_t root { gc_root_t::THREAD_OBJECT, object_id };
+        root._thread_object.thread_seq_num = thread_seq_num;
+        root._thread_object.stack_frame_id = stack_frame_id;
+        return root;
+    }
+
+    template<>
+    inline gc_root_t gc_root_t::create<gc_root_t::JNI_MONITOR>(id_t object_id, int32_t thread_seq_num, int32_t stack_frame_id) {
+        gc_root_t root { gc_root_t::JNI_MONITOR, object_id };
+        root._jni_monitor.thread_seq_num = thread_seq_num;
+        root._jni_monitor.stack_frame_id = stack_frame_id;
+        return root;
+    }
 }

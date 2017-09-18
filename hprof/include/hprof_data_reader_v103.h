@@ -107,18 +107,18 @@ namespace hprof {
             };
         private:
             inline static parse_result_t read_next_reacord_header(hprof_istream& in, hprof_tag_t& tag, int32_t& time_delta, int32_t& size);
-            parse_result_t read_utf8_string(hprof_istream& in, int32_t size);
-            parse_result_t read_load_class(hprof_istream& in, int32_t size);
-            parse_result_t read_stack_frame(hprof_istream& in, int32_t size);
-            parse_result_t read_stack_trace(hprof_istream& in, int32_t size);
-            parse_result_t read_heap_dump_segment(hprof_istream& in, int32_t size);
+            parse_result_t read_utf8_string(hprof_istream& in, ssize_t size);
+            parse_result_t read_load_class(hprof_istream& in, ssize_t size);
+            parse_result_t read_stack_frame(hprof_istream& in, ssize_t size);
+            parse_result_t read_stack_trace(hprof_istream& in, ssize_t size);
+            parse_result_t read_heap_dump_segment(hprof_istream& in, ssize_t size);
 
-            size_t read_id(hprof_istream& in, id_t& id);
-            bool read_class_dump(hprof_istream& in, int32_t& data_left, class_info_t& info);
-            bool read_instance_dump(hprof_istream& in, int32_t& data_left, instance_info_ptr_t& info);
-            bool read_objects_array_dump(hprof_istream& in, int32_t& data_left, array_info_ptr_t& info);
-            bool read_array_dump(hprof_istream& in, int32_t& data_left, array_info_ptr_t& info);
-            bool read_gc_root(hprof_gc_tag_t subtype, hprof_istream& in, int32_t& data_left, gc_root_t& info);
+            id_t read_id(hprof_istream& in, ssize_t& data_left);
+            bool read_class_dump(hprof_istream& in, ssize_t& data_left, class_info_impl_t& info);
+            bool read_instance_dump(hprof_istream& in, ssize_t& data_left, instance_info_impl_ptr_t& info);
+            bool read_objects_array_dump(hprof_istream& in, ssize_t& data_left, array_info_ptr_t& info);
+            bool read_array_dump(hprof_istream& in, ssize_t& data_left, array_info_ptr_t& info);
+            gc_root_t read_gc_root(hprof_gc_tag_t subtype, hprof_istream& in, ssize_t& data_left);
             size_t get_field_size(jvm_type_t type) const;
             field_info_t::field_type_t to_field_type(jvm_type_t type) const;
             primitive_array_info_t::array_type_t to_array_type(jvm_type_t type);

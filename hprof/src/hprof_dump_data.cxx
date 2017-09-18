@@ -83,14 +83,14 @@ bool dump_data_t::analyze() {
 
 bool dump_data_t::prepare_gc_roots() {
     for(auto& root : _gc_roots) {
-        auto item = _all.find(root.object_id);
+        auto item = _all.find(root.object_id());
         if (item != std::end(_all)) {
             assert(item->second != nullptr);
             item->second->add_root(root);
             continue;
         }
 
-        auto cls = _classes.find(root.object_id);
+        auto cls = _classes.find(root.object_id());
         if (cls != std::end(_classes)) {
             assert(cls->second != nullptr);
             cls->second->add_root(root);
@@ -106,11 +106,11 @@ bool dump_data_t::prepare_gc_roots() {
 
 bool dump_data_t::prepare_classes() {
     for (auto current = std::begin(_classes); current != std::end(_classes); ++current) {
-        auto name = _strings.find(current->second->name_id);
+        auto name = _strings.find(current->second->name_id());
         if (name == std::end(_strings)) {
             continue;
         }
-        current->second->tokens.set(name->second);
+        current->second->set_name(name->second);
     }
     return true;
 }
@@ -121,10 +121,10 @@ bool dump_data_t::prepare_instances() {
             continue;
         }
 
-        instance_info_t* info = reinterpret_cast<instance_info_t*>(current->second.get());
-        assert(info->class_instance == nullptr);
-        info->class_instance = _classes[info->class_id];
-        info->class_instance->instances.push_back(current->second);
+        instance_info_impl_t* info = static_cast<instance_info_impl_t*>(current->second.get());
+        class_info_ptr_t cls = _classes[info->class_id()];
+        info->set_class(cls);
+        cls->add_instance(current->second);
     }
 
     return true;
