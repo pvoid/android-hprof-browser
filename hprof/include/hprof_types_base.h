@@ -18,6 +18,9 @@
 #include <sys/types.h>
 #include <chrono>
 #include <memory>
+#include <set>
+#include <vector>
+#include <cstring>
 
 namespace hprof {
     using id_t = u_int64_t;
