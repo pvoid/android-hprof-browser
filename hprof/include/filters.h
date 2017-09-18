@@ -127,10 +127,10 @@ namespace hprof {
             bool result = false;
             switch (object->type()) {
                 case object_info_t::TYPE_INSTANCE:
-                    result = reinterpret_cast<const instance_info_t* const>(object)->class_instance->tokens.match(_name) == 0;
+                    result = static_cast<const instance_info_t* const>(object)->get_class()->tokens().match(_name) == 0;
                     break;
                 case object_info_t::TYPE_CLASS:
-                    result = reinterpret_cast<const class_info_t* const>(object)->tokens.match(_name) == 0;
+                    result = static_cast<const class_info_t* const>(object)->tokens().match(_name) == 0;
                     break;
                 case object_info_t::TYPE_OBJECTS_ARRAY:
                 case object_info_t::TYPE_PRIMITIVES_ARRAY:
@@ -152,18 +152,18 @@ namespace hprof {
             }
 
             const instance_info_t* const instance = static_cast<const instance_info_t* const>(object);
-            class_info_ptr_t cls = instance->class_instance;
+            class_info_ptr_t cls = instance->get_class();
             for(;;) {
-                const std::string name = helper.get_string(cls->name_id);
+                const std::string name = helper.get_string(cls->name_id());
                 if (name == _class_name) {
                     return Match;
                 }
 
-                if (cls->super_id == 0) {
+                if (cls->super_id() == 0) {
                     break;
                 }
 
-                cls = helper.get_class_by_id(cls->super_id);
+                cls = helper.get_class_by_id(cls->super_id());
             }
             return NoMatch;
         }

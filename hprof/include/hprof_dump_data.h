@@ -40,8 +40,8 @@ namespace hprof {
         virtual class_info_ptr_t get_class_by_id(id_t id) const override;
     private:
         bool prepare_gc_roots();
-        bool prepare_classes();
         bool prepare_instances();
+        bool prepare_classes();
     private:
         size_t _id_size;
         time_t _time;

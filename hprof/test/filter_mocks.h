@@ -80,6 +80,6 @@ inline filter_type create_filter(filter_t::filter_result_t base_value_left, filt
 
 template <typename filter_type, typename... mock_results>
 inline filter_t::filter_result_t apply_filter(mock_results... base_values) {
-    class_info_t instance {};
+    class_info_impl_t instance {};
     return create_filter<filter_type>(base_values...)(&instance, mock_filter_helper_t {});
 }
