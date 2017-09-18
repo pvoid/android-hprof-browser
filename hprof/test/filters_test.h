@@ -17,44 +17,9 @@
 #include <gtest/gtest.h>
 
 #include "filters.h"
+#include "filter_mocks.h"
 
 using namespace hprof;
-
-class filter_mock_t : public filter_t {
-public:
-    explicit filter_mock_t(filter_t::filter_result_t value) : _value(value) {}
-    virtual ~filter_mock_t() {}
-
-    virtual filter_result_t operator()(const object_info_t* const object, const filter_helper_t& helper) const override {
-        return _value;
-    }
-private:
-    filter_t::filter_result_t _value;
-};
-
-class mock_filter_helper_t : public filter_helper_t {
-public:
-    virtual class_info_ptr_t get_class_by_id(hprof::id_t id) const override {
-        return std::make_shared<class_info_t>();
-    }
-};
-
-template <typename filter_type>
-inline filter_type create_filter(filter_t::filter_result_t base_value) {
-    return filter_type { std::move(std::make_unique<filter_mock_t>(base_value)) };
-}
-
-template <typename filter_type>
-inline filter_type create_filter(filter_t::filter_result_t base_value_left, filter_t::filter_result_t base_value_right) {
-    return filter_type { std::move(std::make_unique<filter_mock_t>(base_value_left)),
-        std::move(std::make_unique<filter_mock_t>(base_value_right))};
-}
-
-template <typename filter_type, typename... mock_results>
-inline filter_t::filter_result_t apply_filter(mock_results... base_values) {
-    class_info_t instance {};
-    return create_filter<filter_type>(base_values...)(&instance, mock_filter_helper_t {});
-}
 
 TEST(Filters, FilterNot) {
     ASSERT_EQ(filter_t::NoMatch, apply_filter<filter_not_t>(filter_t::Match));
@@ -87,43 +52,113 @@ TEST(Filters, FilterOr) {
 }
 
 TEST(Filters, FilterClassNameSameClass) {
-    filter_class_name_t filter { "com.android" };
     class_info_t cls;
     cls.tokens.set("com.android.View");
+
+    filter_class_name_t filter { "com.android" };
     ASSERT_EQ(filter_t::Match, filter(&cls, mock_filter_helper_t {}));
 }
 
 TEST(Filters, FilterClassNameNotSameClass) {
-    filter_class_name_t filter { "com.android" };
     class_info_t cls;
     cls.tokens.set("java.lang.String");
+
+    filter_class_name_t filter { "com.android" };
     ASSERT_EQ(filter_t::NoMatch, filter(&cls, mock_filter_helper_t {}));
 }
 
 TEST(Filters, FilterClassNameInstanceSameClass) {
-    filter_class_name_t filter { "com.android" };
     instance_info_t instance {0, 0, 0, 0};
     instance.class_instance = std::make_shared<class_info_t>();
     instance.class_instance->tokens.set("com.android.View");
+
+    filter_class_name_t filter { "com.android" };
     ASSERT_EQ(filter_t::Match, filter(&instance, mock_filter_helper_t {}));
 }
 
 TEST(Filters, FilterClassNameInstanceNotSameClass) {
-    filter_class_name_t filter { "com.android" };
     instance_info_t instance {0, 0, 0, 0};
     instance.class_instance = std::make_shared<class_info_t>();
     instance.class_instance->tokens.set("java.lang.String");
+
+    filter_class_name_t filter { "com.android" };
     ASSERT_EQ(filter_t::NoMatch, filter(&instance, mock_filter_helper_t {}));
 }
 
 TEST(Filters, FilterClassNamePrimitiveArray) {
-    filter_class_name_t filter { "com.android" };
     primitive_array_info_t array {0, 0, primitive_array_info_t::TYPE_BOOL, 0};
+
+    filter_class_name_t filter { "com.android" };
     ASSERT_EQ(filter_t::NoMatch, filter(&array, mock_filter_helper_t {}));
 }
 
 TEST(Filters, FilterClassNameObjectArray) {
-    filter_class_name_t filter { "com.android" };
     object_array_info_t array {0, 0, 0};
+
+    filter_class_name_t filter { "com.android" };
     ASSERT_EQ(filter_t::NoMatch, filter(&array, mock_filter_helper_t {}));
+}
+
+TEST(Filters, FilterInstanceOfDirectClassMatch) {
+    mock_filter_helper_t helper {};
+    instance_info_t instance {0, 0, 0, 0};
+    instance.class_instance = std::make_shared<class_info_t>();
+    instance.class_instance->name_id = 1;
+    helper.add(1, "com.android.View");
+
+    filter_instance_of_t filter { "com.android.View" };
+    ASSERT_EQ(filter_t::Match, filter(&instance, helper));
+}
+
+TEST(Filters, FilterInstanceOfSubClassMatch) {
+    mock_filter_helper_t helper {};
+    helper.add(1, "com.android.GroupView");
+    helper.add(2, "com.android.View");
+
+    instance_info_t instance {0, 0, 0, 0};
+    instance.class_instance = std::make_shared<class_info_t>();
+    instance.class_instance->class_id = 1;
+    instance.class_instance->name_id = 1;
+    instance.class_instance->super_id = 2;
+
+    auto super_class = std::make_shared<class_info_t>();
+    super_class->class_id = 2;
+    super_class->super_id = 0;
+    super_class->name_id = 2;
+    helper.add(super_class);
+
+    filter_instance_of_t filter { "com.android.View" };
+    ASSERT_EQ(filter_t::Match, filter(&instance, helper));
+}
+
+TEST(Filters, FilterInstanceOfDirectClassNoMatch) {
+    mock_filter_helper_t helper {};
+    instance_info_t instance {0, 0, 0, 0};
+    instance.class_instance = std::make_shared<class_info_t>();
+    instance.class_instance->name_id = 1;
+    helper.add(1, "com.android.View");
+
+    filter_instance_of_t filter { "java.lang.String" };
+    ASSERT_EQ(filter_t::NoMatch, filter(&instance, helper));
+}
+
+TEST(Filters, FilterInstanceOfSubClassNoMatch) {
+    mock_filter_helper_t helper {};
+    helper.add(1, "com.android.GroupView");
+    helper.add(2, "com.android.View");
+
+    instance_info_t instance {0, 0, 0, 0};
+    instance.class_instance = std::make_shared<class_info_t>();
+    instance.class_instance->class_id = 1;
+    instance.class_instance->name_id = 1;
+    instance.class_instance->super_id = 2;
+
+    auto super_class = std::make_shared<class_info_t>();
+    super_class->class_id = 2;
+    super_class->super_id = 0;
+    super_class->name_id = 2;
+    helper.add(super_class);
+
+    filter_instance_of_t filter { "java.lang.String" };
+    ASSERT_EQ(filter_t::NoMatch, filter(&instance, helper));
 }

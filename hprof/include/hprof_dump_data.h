@@ -36,14 +36,12 @@ namespace hprof {
         void print_stats() const;
         bool get_classes(std::vector<class_info_ptr_t>& classes, const filter_t& filter) const;
         bool get_instances(std::vector<object_info_ptr_t>& objects, const filter_t& filter) const;
-        const std::string& get_string(id_t id) const;
-
+        virtual const std::string& get_string(id_t id) const override;
+        virtual class_info_ptr_t get_class_by_id(id_t id) const override;
     private:
         bool prepare_gc_roots();
         bool prepare_classes();
         bool prepare_instances();
-
-        virtual class_info_ptr_t get_class_by_id(id_t id) const override;
     private:
         size_t _id_size;
         time_t _time;

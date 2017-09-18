@@ -26,6 +26,7 @@
 namespace hprof {
     struct filter_helper_t {
         virtual class_info_ptr_t get_class_by_id(id_t id) const = 0;
+        virtual const std::string& get_string(id_t id) const = 0;
     };
 
     class filter_t {
@@ -139,5 +140,34 @@ namespace hprof {
         }
     private:
         name_tokens _name;
+    };
+
+    class filter_instance_of_t : public filter_t {
+    public:
+        explicit filter_instance_of_t(const std::string& name) : _class_name(name) {}
+        ~filter_instance_of_t() {}
+        virtual filter_result_t operator()(const object_info_t* const object, const filter_helper_t& helper) const override {
+            if (object->type() != object_info_t::TYPE_INSTANCE) {
+                return NoMatch;
+            }
+
+            const instance_info_t* const instance = static_cast<const instance_info_t* const>(object);
+            class_info_ptr_t cls = instance->class_instance;
+            for(;;) {
+                const std::string name = helper.get_string(cls->name_id);
+                if (name == _class_name) {
+                    return Match;
+                }
+
+                if (cls->super_id == 0) {
+                    break;
+                }
+
+                cls = helper.get_class_by_id(cls->super_id);
+            }
+            return NoMatch;
+        }
+    private:
+        std::string _class_name;
     };
 }
