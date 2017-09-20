@@ -55,6 +55,19 @@ namespace hprof {
 
     struct gc_root_t;
 
+    enum jvm_type_t {
+        JVM_TYPE_UNKNOWN,
+        JVM_TYPE_OBJECT,
+        JVM_TYPE_BOOL,
+        JVM_TYPE_CHAR,
+        JVM_TYPE_FLOAT,
+        JVM_TYPE_DOUBLE,
+        JVM_TYPE_BYTE,
+        JVM_TYPE_SHORT,
+        JVM_TYPE_INT,
+        JVM_TYPE_LONG
+    };
+
     class object_info_t {
     public:
         enum object_type_t {
@@ -64,6 +77,9 @@ namespace hprof {
             TYPE_PRIMITIVES_ARRAY
         };
     public:
+        explicit object_info_t(u_int8_t id_size) : _id_size(id_size), _heap_type(0) {}
+        virtual ~object_info_t() {}
+
         virtual id_t id() const = 0;
         virtual object_type_t type() const = 0;
         virtual int32_t has_link_to(id_t id) const = 0;
@@ -76,37 +92,35 @@ namespace hprof {
             _roots.push_back(root);
         }
     protected:
+        u_int8_t _id_size;
         int32_t _heap_type;
         std::vector<gc_root_t> _roots;
     };
 
     using object_info_ptr_t = std::shared_ptr<object_info_t>;
 
-    struct field_info_t {
-        enum field_type_t {
-            TYPE_UNKNOWN,
-            TYPE_OBJECT,
-            TYPE_BOOL,
-            TYPE_CHAR,
-            TYPE_FLOAT,
-            TYPE_DOUBLE,
-            TYPE_BYTE,
-            TYPE_SHORT,
-            TYPE_INT,
-            TYPE_LONG
-        };
+    class field_info_t {
+    public:
 
-        id_t name_id;
-        field_type_t type;
-        size_t offset;
+    public:
+        field_info_t(id_t name, jvm_type_t type, size_t offset) : _name_id(name), _type(type), _offset(offset) {}
 
-        field_info_t(id_t name, field_type_t type, size_t offset) : name_id(name), type(type), offset(offset) {}
+        id_t name_id() const { return _name_id; }
+        jvm_type_t type() const { return _type; }
+        size_t offset() const { return _offset; }
+    private:
+        id_t _name_id;
+        jvm_type_t _type;
+        size_t _offset;
     };
 
-    struct static_field_t : field_info_t {
+    class static_field_t : public field_info_t {
     public:
-        static_field_t(id_t name, field_info_t::field_type_t type, const u_int8_t* value, size_t size) : field_info_t(name, type, 0), value {0} {
-            memcpy(&(this->value), value, std::min(size, sizeof(this->value)));
+        static_field_t(id_t name, jvm_type_t type, const u_int8_t* value, size_t size) : field_info_t(name, type, 0), long_value {0} {
+            for (const u_int8_t* last = value + size; value != last; ++value) {
+                long_value <<= 8;
+                long_value |= *value;
+            }
         }
     public:
         union {
@@ -119,7 +133,17 @@ namespace hprof {
             jvm_float_t float_value;
             jvm_double_t double_value;
             id_t object_value;
-        } value;
+        };
+
+        operator jvm_bool_t() const { return bool_value; }
+        operator jvm_byte_t() const { return byte_value; }
+        operator jvm_char_t() const { return char_value; }
+        operator jvm_short_t() const { return short_value; }
+        operator jvm_int_t() const { return int_value; }
+        operator jvm_long_t() const { return long_value; }
+        operator jvm_float_t() const { return float_value; }
+        operator jvm_double_t() const { return double_value; }
+        operator id_t() const { return object_value; }
     };
 
 }

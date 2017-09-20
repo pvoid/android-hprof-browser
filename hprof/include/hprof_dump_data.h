@@ -38,6 +38,7 @@ namespace hprof {
         bool get_instances(std::vector<object_info_ptr_t>& objects, const filter_t& filter) const;
         virtual const std::string& get_string(id_t id) const override;
         virtual class_info_ptr_t get_class_by_id(id_t id) const override;
+        object_info_ptr_t get_object_by_id(id_t id) const;
     private:
         bool prepare_gc_roots();
         bool prepare_instances();

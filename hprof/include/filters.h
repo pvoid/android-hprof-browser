@@ -155,6 +155,7 @@ namespace hprof {
             class_info_ptr_t cls = instance->get_class();
             for(;;) {
                 const std::string name = helper.get_string(cls->name_id());
+                // TODO: case insencative comparation
                 if (name == _class_name) {
                     return Match;
                 }
