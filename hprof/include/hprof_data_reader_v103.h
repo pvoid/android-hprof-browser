@@ -74,16 +74,16 @@ namespace hprof {
             DUMP_PRIMITIVE_ARRAY_NODATA_DUMP = 0xc3,
         };
 
-        enum jvm_type_t : u_int8_t {
-            JVM_TYPE_OBJECT = 2,
-            JVM_TYPE_BOOL = 4,
-            JVM_TYPE_CHAR = 5,
-            JVM_TYPE_FLOAT = 6,
-            JVM_TYPE_DOUBLE = 7,
-            JVM_TYPE_BYTE = 8,
-            JVM_TYPE_SHORT = 9,
-            JVM_TYPE_INT = 10,
-            JVM_TYPE_LONG = 11,
+        enum hprof_type_t : u_int8_t {
+            HPROF_TYPE_OBJECT = 2,
+            HPROF_TYPE_BOOL = 4,
+            HPROF_TYPE_CHAR = 5,
+            HPROF_TYPE_FLOAT = 6,
+            HPROF_TYPE_DOUBLE = 7,
+            HPROF_TYPE_BYTE = 8,
+            HPROF_TYPE_SHORT = 9,
+            HPROF_TYPE_INT = 10,
+            HPROF_TYPE_LONG = 11,
         };
 
         class reader {
@@ -119,9 +119,8 @@ namespace hprof {
             bool read_objects_array_dump(hprof_istream& in, ssize_t& data_left, array_info_ptr_t& info);
             bool read_array_dump(hprof_istream& in, ssize_t& data_left, array_info_ptr_t& info);
             gc_root_t read_gc_root(hprof_gc_tag_t subtype, hprof_istream& in, ssize_t& data_left);
-            size_t get_field_size(jvm_type_t type) const;
-            field_info_t::field_type_t to_field_type(jvm_type_t type) const;
-            primitive_array_info_t::array_type_t to_array_type(jvm_type_t type);
+            size_t get_field_size(hprof_type_t type) const;
+            jvm_type_t to_jvm_type(hprof_type_t type) const;
         private:
             const size_t _id_size;
             strings_map_t _strings;

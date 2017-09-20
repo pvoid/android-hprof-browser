@@ -18,7 +18,7 @@ project(hprof-cli C CXX)
 
 file(GLOB SOURCE_FILES ${PROJECT_SOURCE_DIR}/src/*.cxx)
 
-include_directories(${hprof-library_INCLUDE_DIRS})
+include_directories(${hprof-library_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR}/includes)
 
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 14)

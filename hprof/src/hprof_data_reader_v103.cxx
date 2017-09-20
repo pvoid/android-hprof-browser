@@ -198,7 +198,7 @@ data_reader_v103_t::parse_result_t data_reader_v103_t::reader::read_heap_dump_se
 
         switch (subtype) {
             case  DUMP_CLASS_DUMP: {
-                auto info = std::make_shared<class_info_impl_t>();
+                auto info = std::make_shared<class_info_impl_t>(_id_size);
                 if (!read_class_dump(in, size, *info)) {
                     return FAILED;
                 }
@@ -336,14 +336,14 @@ bool data_reader_v103_t::reader::read_class_dump(hprof_istream& in, ssize_t& dat
 
         for (int index = 0; index < static_fields_count; ++index) {
             id_t field_name = read_id(in, data_left);
-            auto type = static_cast<jvm_type_t>(in.read_byte());
+            auto type = static_cast<hprof_type_t>(in.read_byte());
             --data_left;
 
             size_t field_size = get_field_size(type);
             in.read_bytes(buffer, field_size);
             data_left -= field_size;
 
-            info.add_static_field(field_name, to_field_type(type), buffer, field_size);
+            info.add_static_field(field_name, to_jvm_type(type), buffer, field_size);
 
             if (in.eof()) return false;
         }
@@ -355,12 +355,12 @@ bool data_reader_v103_t::reader::read_class_dump(hprof_istream& in, ssize_t& dat
 
     for (size_t index = 0, offset = 0; index < fields_count; ++index) {
         id_t field_name = read_id(in, data_left);
-        auto type = static_cast<jvm_type_t>(in.read_byte());
+        auto type = static_cast<hprof_type_t>(in.read_byte());
         --data_left;
 
         if (in.eof()) return false;
 
-        info.add_field_info(field_name, to_field_type(type), offset);
+        info.add_field_info(field_name, to_jvm_type(type), offset);
         offset += get_field_size(type);
     }
 
@@ -381,7 +381,7 @@ bool data_reader_v103_t::reader::read_instance_dump(hprof_istream& in, ssize_t& 
     if (in.eof()) return false;
 
     auto mem = new (std::nothrow) u_int8_t[sizeof(instance_info_t) + object_size];
-    info.reset(new (mem) instance_info_impl_t(object_id, class_id, stack_trace_id, object_size),
+    info.reset(new (mem) instance_info_impl_t(_id_size, object_id, class_id, stack_trace_id, object_size),
         [] (auto item) { delete[] reinterpret_cast<u_int8_t*>(item); });
 
     info->read_data(in);
@@ -399,14 +399,11 @@ bool data_reader_v103_t::reader::read_objects_array_dump(hprof_istream& in, ssiz
 
     if (in.eof()) return false;
 
+    size_t array_size = length * _id_size;
     auto mem = new (std::nothrow) u_int8_t[sizeof(object_array_info_t) + (length * sizeof(id_t))];
-    info.reset(new (mem) object_array_info_t(object_id, stack_trace_id, length), [] (auto item) { delete[] reinterpret_cast<u_int8_t*>(item); });
-
-    object_array_info_t* array_info = static_cast<object_array_info_t*>(info.get());
-
-    for (int index = 0; index < length; ++index) {
-        array_info->data[index] = read_id(in, data_left);
-    }
+    info.reset(new (mem) object_array_info_impl_t(_id_size, object_id, stack_trace_id, length), [] (auto item) { delete[] reinterpret_cast<u_int8_t*>(item); });
+    static_cast<object_array_info_impl_t *>(info.get())->read(in, array_size);
+    data_left -= array_size;
 
     return !in.eof();
 }
@@ -416,16 +413,15 @@ bool data_reader_v103_t::reader::read_array_dump(hprof_istream& in, ssize_t& dat
     id_t object_id = read_id(in, data_left);
     int32_t stack_trace_id = in.read_int32();
     int32_t length = in.read_int32();
-    auto type = static_cast<jvm_type_t>(in.read_byte());
+    auto type = static_cast<hprof_type_t>(in.read_byte());
     data_left -= 9;
 
     size_t array_size = length * get_field_size(type);
     auto mem = new (std::nothrow) u_int8_t[sizeof(primitive_array_info_t) + array_size];
-    info.reset(new (mem) primitive_array_info_t(object_id, stack_trace_id, to_array_type(type), length), [] (auto item) { delete[] reinterpret_cast<u_int8_t*>(item); });
+    info.reset(new (mem) primitive_array_info_impl_t(_id_size, object_id, stack_trace_id, to_jvm_type(type), length),
+               [] (auto item) { delete[] reinterpret_cast<u_int8_t*>(item); });
+    static_cast<primitive_array_info_impl_t *>(info.get())->read(in, array_size);
     data_left -= array_size;
-
-    primitive_array_info_t* array_info = static_cast<primitive_array_info_t*>(info.get());
-    in.read_bytes(reinterpret_cast<u_int8_t*>(array_info->data.byte_data), array_size);
 
     return !in.eof();
 }
@@ -548,52 +544,38 @@ gc_root_t data_reader_v103_t::reader::read_gc_root(hprof_gc_tag_t subtype, hprof
     return gc_root_t::create<gc_root_t::INVALID>();
 }
 
-size_t data_reader_v103_t::reader::get_field_size(jvm_type_t type) const {
+size_t data_reader_v103_t::reader::get_field_size(hprof_type_t type) const {
     switch (type) {
-        case JVM_TYPE_OBJECT:
+        case HPROF_TYPE_OBJECT:
             return _id_size;
-        case JVM_TYPE_BOOL:
-        case JVM_TYPE_BYTE:
+        case HPROF_TYPE_BOOL:
+        case HPROF_TYPE_BYTE:
             return 1;
-        case JVM_TYPE_CHAR:
-        case JVM_TYPE_SHORT:
+        case HPROF_TYPE_CHAR:
+        case HPROF_TYPE_SHORT:
             return 2;
-        case JVM_TYPE_FLOAT:
-        case JVM_TYPE_INT:
+        case HPROF_TYPE_FLOAT:
+        case HPROF_TYPE_INT:
             return 4;
-        case JVM_TYPE_DOUBLE:
-        case JVM_TYPE_LONG:
+        case HPROF_TYPE_DOUBLE:
+        case HPROF_TYPE_LONG:
             return 8;
         default:
             return 0;
     }
 }
 
-field_info_t::field_type_t data_reader_v103_t::reader::to_field_type(data_reader_v103_t::jvm_type_t type) const {
+jvm_type_t data_reader_v103_t::reader::to_jvm_type(data_reader_v103_t::hprof_type_t type) const {
     switch (type) {
-        case JVM_TYPE_OBJECT: return field_info_t::TYPE_OBJECT;
-        case JVM_TYPE_BOOL: return field_info_t::TYPE_BOOL;
-        case JVM_TYPE_CHAR: return field_info_t::TYPE_CHAR;
-        case JVM_TYPE_FLOAT: return field_info_t::TYPE_FLOAT;
-        case JVM_TYPE_DOUBLE: return field_info_t::TYPE_DOUBLE;
-        case JVM_TYPE_BYTE: return field_info_t::TYPE_BYTE;
-        case JVM_TYPE_SHORT: return field_info_t::TYPE_SHORT;
-        case JVM_TYPE_INT: return field_info_t::TYPE_INT;
-        case JVM_TYPE_LONG: return field_info_t::TYPE_LONG;
-        default: return field_info_t::TYPE_UNKNOWN;
-    }
-}
-
-primitive_array_info_t::array_type_t data_reader_v103_t::reader::to_array_type(data_reader_v103_t::jvm_type_t type) {
-    switch (type) {
-        case JVM_TYPE_BOOL: return primitive_array_info_t::TYPE_BOOL;
-        case JVM_TYPE_CHAR: return primitive_array_info_t::TYPE_CHAR;
-        case JVM_TYPE_FLOAT: return primitive_array_info_t::TYPE_FLOAT;
-        case JVM_TYPE_DOUBLE: return primitive_array_info_t::TYPE_DOUBLE;
-        case JVM_TYPE_BYTE: return primitive_array_info_t::TYPE_BYTE;
-        case JVM_TYPE_SHORT: return primitive_array_info_t::TYPE_SHORT;
-        case JVM_TYPE_INT: return primitive_array_info_t::TYPE_INT;
-        case JVM_TYPE_LONG: return primitive_array_info_t::TYPE_LONG;
-        default: return primitive_array_info_t::TYPE_INVALID;
+        case HPROF_TYPE_OBJECT: return JVM_TYPE_OBJECT;
+        case HPROF_TYPE_BOOL:   return JVM_TYPE_BOOL;
+        case HPROF_TYPE_CHAR:   return JVM_TYPE_CHAR;
+        case HPROF_TYPE_FLOAT:  return JVM_TYPE_FLOAT;
+        case HPROF_TYPE_DOUBLE: return JVM_TYPE_DOUBLE;
+        case HPROF_TYPE_BYTE:   return JVM_TYPE_BYTE;
+        case HPROF_TYPE_SHORT:  return JVM_TYPE_SHORT;
+        case HPROF_TYPE_INT:    return JVM_TYPE_INT;
+        case HPROF_TYPE_LONG:   return JVM_TYPE_LONG;
+        default:                return JVM_TYPE_UNKNOWN;
     }
 }

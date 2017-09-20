@@ -18,7 +18,6 @@
 #include <gtest/gtest_prod.h>
 #include "hprof_types_base.h"
 #include "name_tokenizer.h"
-#include <type_traits>
 #include <unordered_map>
 
 namespace hprof {
@@ -27,6 +26,7 @@ namespace hprof {
     using std::unordered_map;
 
     class class_info_t : public object_info_t {
+        friend class class_info_impl_t;
     public:
         virtual ~class_info_t() {}
 
@@ -49,11 +49,11 @@ namespace hprof {
             }
 
             for (const auto& field : _static_fields) {
-                if (field.type != field_info_t::TYPE_OBJECT) {
+                if (field.type() != JVM_TYPE_OBJECT) {
                     continue;
                 }
 
-                if (field.value.object_value == id) {
+                if (field.object_value == id) {
                     result |= link_t::TYPE_OWNERSHIP;
                     break;
                 }
@@ -66,43 +66,25 @@ namespace hprof {
 
         size_t fields_count() const { return _fields.size(); }
 
-        field_info_t::field_type_t field_type(size_t index) const {
+        field_info_t field(size_t index) const {
             if (index < _fields.size()) {
-                return _fields[index].type;
+                return _fields[index];
             }
-            return field_info_t::field_type_t::TYPE_UNKNOWN;
+            return field_info_t {0, JVM_TYPE_UNKNOWN, 0};
         }
 
-        template<typename T>
-        bool read_field_value(u_int8_t* data, size_t index, T& value) const {
-            const field_info_t& info = _fields[index];
-            size_t size = 0;
+        size_t static_fields_count() const { return _static_fields.size(); }
 
-            if (is_same<decltype(value), jvm_bool_t>::value || is_same<decltype(value), jvm_byte_t>::value) {
-                size = 1;
-            } else if (is_same<decltype(value), jvm_char_t>::value || is_same<decltype(value), jvm_short_t>::value) {
-                size = 2;
-            } else if (is_same<decltype(value), jvm_float_t>::value || is_same<decltype(value), jvm_int_t>::value) {
-                size = 4;
-            } else if (is_same<decltype(value), jvm_double_t>::value || is_same<decltype(value), jvm_long_t>::value) {
-                size = 8;
-            }
-
-            if (size == 0) {
-                return false;
-            }
-
-            memcpy(&value, data + info.offset, size);
-
-            return true;
+        const static_field_t& static_field(size_t index) const {
+            return _static_fields[index];
         }
 
         void add_instance(object_info_ptr_t instance) {
             _instances.push_back(instance);
         }
-    protected:
-        class_info_t() : _class_id(0), _super_id(0), _class_loader_id(0), _name_id(0), _seq_number(0), _stack_trace_id(0), _size(0), _instances(0) {}
-    protected:
+    private:
+        explicit class_info_t(u_int8_t id_size) : object_info_t(id_size), _class_id(0), _super_id(0), _class_loader_id(0), _name_id(0), _seq_number(0), _stack_trace_id(0), _size(0), _instances(0) {}
+    private:
         id_t _class_id;
         id_t _super_id;
         id_t _class_loader_id;
@@ -120,7 +102,7 @@ namespace hprof {
 
     class class_info_impl_t : public class_info_t {
     public:
-        class_info_impl_t() : class_info_t() {}
+        explicit class_info_impl_t(u_int8_t id_size) : class_info_t(id_size) {}
         virtual ~class_info_impl_t() {}
     public:
         void set_class_id(id_t id) {
@@ -155,11 +137,11 @@ namespace hprof {
             _size = size;
         }
 
-        void add_field_info(id_t name_id, field_info_t::field_type_t type, size_t offset) {
+        void add_field_info(id_t name_id, jvm_type_t type, size_t offset) {
             _fields.emplace_back(name_id, type, offset);
         }
 
-        void add_static_field(id_t name, field_info_t::field_type_t type, const u_int8_t* value, size_t size) {
+        void add_static_field(id_t name, jvm_type_t type, const u_int8_t* value, size_t size) {
             _static_fields.emplace_back(name, type, value, size);
         }
     };

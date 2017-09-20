@@ -193,3 +193,12 @@ class_info_ptr_t dump_data_t::get_class_by_id(id_t id) const {
 
     return result->second;
 }
+
+object_info_ptr_t dump_data_t::get_object_by_id(id_t id) const {
+    auto result = _all.find(id);
+    if (result == std::end(_all)) {
+        return object_info_ptr_t {};
+    }
+
+    return result->second;
+}
