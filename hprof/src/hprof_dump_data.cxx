@@ -143,7 +143,18 @@ const std::string& dump_data_t::get_string(id_t id) const {
     return item->second;
 }
 
-bool dump_data_t::get_classes(std::vector<class_info_ptr_t>& classes, const filter_t& filter) const {
+bool dump_data_t::query(const query_t& query, std::vector<object_info_ptr_t>& result) const {
+    switch (query.source) {
+        case query_t::SOURCE_CLASS:
+            return query_classes(*query.filter, result);
+        case query_t::SOURCE_OBJECTS:
+            return query_instances(*query.filter, result);
+    }
+
+    return false;
+}
+
+bool dump_data_t::query_classes(const filter_t& filter, std::vector<object_info_ptr_t>& result) const {
     if (!_is_index_built) {
         return false;
     }
@@ -151,7 +162,7 @@ bool dump_data_t::get_classes(std::vector<class_info_ptr_t>& classes, const filt
     for (auto item : _classes) {
         switch (filter(item.second.get(), *this)) {
             case filter_t::Match:
-                classes.push_back(item.second);
+                result.push_back(item.second);
                 break;
             case filter_t::NoMatch:
                 continue;
@@ -164,7 +175,7 @@ bool dump_data_t::get_classes(std::vector<class_info_ptr_t>& classes, const filt
     return true;
 }
 
-bool dump_data_t::get_instances(std::vector<object_info_ptr_t>& objects, const filter_t& filter) const {
+bool dump_data_t::query_instances(const filter_t& filter, std::vector<object_info_ptr_t>& result) const {
     if (!_is_index_built) {
         return false;
     }
@@ -172,7 +183,7 @@ bool dump_data_t::get_instances(std::vector<object_info_ptr_t>& objects, const f
     for (auto item : _all) {
         switch (filter(item.second.get(), *this)) {
             case filter_t::Match:
-                objects.push_back(item.second);
+                result.push_back(item.second);
                 break;
             case filter_t::NoMatch:
                 continue;

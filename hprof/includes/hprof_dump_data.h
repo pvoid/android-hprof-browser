@@ -17,6 +17,7 @@
 
 #include "hprof_types.h"
 #include "filters.h"
+#include "query.h"
 
 namespace hprof {
     class dump_data_t : filter_helper_t {
@@ -34,8 +35,7 @@ namespace hprof {
         bool add(const strings_map_t& strings);
         bool add(const array_map_t& arrays);
         void print_stats() const;
-        bool get_classes(std::vector<class_info_ptr_t>& classes, const filter_t& filter) const;
-        bool get_instances(std::vector<object_info_ptr_t>& objects, const filter_t& filter) const;
+        bool query(const query_t& query, std::vector<object_info_ptr_t>& result) const;
         virtual const std::string& get_string(id_t id) const override;
         virtual class_info_ptr_t get_class_by_id(id_t id) const override;
         object_info_ptr_t get_object_by_id(id_t id) const;
@@ -43,6 +43,9 @@ namespace hprof {
         bool prepare_gc_roots();
         bool prepare_instances();
         bool prepare_classes();
+
+        bool query_classes(const filter_t& filter, std::vector<object_info_ptr_t>& result) const;
+        bool query_instances(const filter_t& filter, std::vector<object_info_ptr_t>& result) const;
     private:
         size_t _id_size;
         time_t _time;
