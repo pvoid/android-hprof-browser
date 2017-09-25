@@ -1,5 +1,4 @@
-///            // memcpy(&(this->long_value), value, std::min(size, sizeof(this->long_value)));
-
+///
 ///  Copyright 2017 Dmitry "PVOID" Petukhov
 ///
 ///  Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,7 +15,18 @@
 ///
 #pragma once
 
-#include "hprof_types_instance.h"
-#include "hprof_dump_data.h"
+#include "location.hh"
+#include "language_parser.h"
 
-void print_object(const hprof::object_info_ptr_t& item, const hprof::dump_data_t& hprof, int max_level);
+namespace hprof {
+    class language_driver {
+    public:
+        language_driver() {}
+        virtual ~language_driver() {}
+
+        int parse(const std::string& text);
+
+        void error(const hprof::location& loc, const std::string& msg);
+        void error(const std::string& msg);
+    };
+}

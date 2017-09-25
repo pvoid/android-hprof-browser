@@ -20,7 +20,7 @@
 
 using namespace hprof;
 
-void print_object(const object_info_ptr_t& item, const dump_data_t& hprof, int level);
+void print_object(const object_info_ptr_t& item, const dump_data_t& hprof, int level, int max_level);
 
 inline void print_type(jvm_type_t type) {
     switch(type) {
@@ -58,7 +58,7 @@ inline void print_type(jvm_type_t type) {
 }
 
 template <typename T>
-void print_field_value(T field, const dump_data_t& hprof, int level) {
+void print_field_value(T field, const dump_data_t& hprof, int level, int max_level) {
     switch (field.type()) {
         case JVM_TYPE_UNKNOWN:
             std::cout << "unknwon";
@@ -98,7 +98,7 @@ void print_field_value(T field, const dump_data_t& hprof, int level) {
                 if (obj == nullptr) {
                     std::cout << "<not found>";
                 } else {
-                    print_object(obj, hprof, level + 1);
+                    print_object(obj, hprof, level + 1, max_level);
                 }
             }
 
@@ -107,19 +107,19 @@ void print_field_value(T field, const dump_data_t& hprof, int level) {
     }
 }
 
-void print_static_fields(const class_info_t* const cls, const dump_data_t& hprof, int level) {
+void print_static_fields(const class_info_t* const cls, const dump_data_t& hprof, int level, int max_level) {
     std::string field_ident;
     field_ident.assign((level + 1) * 4, ' ');
 
     for (int index = 0, count = cls->static_fields_count(); index < count; ++index) {
         auto& field = cls->static_field(index);
         std::cout << field_ident << "static " << hprof.get_string(field.name_id()) << " : ";
-        print_field_value(field, hprof, level);
+        print_field_value(field, hprof, level, max_level);
         std::cout << std::endl;
     }
 }
 
-void print_instance(const instance_info_t* item, const dump_data_t& hprof, int level) {
+void print_instance(const instance_info_t* item, const dump_data_t& hprof, int level, int max_level) {
     if (item == nullptr) {
         std::cout << "NULL";
     }
@@ -130,27 +130,30 @@ void print_instance(const instance_info_t* item, const dump_data_t& hprof, int l
         auto super_class = hprof.get_class_by_id(super_id);
         std::cout << " : " << hprof.get_string(super_class->name_id());
     }
-    std::cout << " {" << std::endl;
 
-    // item->dump();
+    if (level < max_level) {
+        std::cout << " {" << std::endl;
 
-    std::string field_ident;
-    field_ident.assign((level + 1) * 4, ' ');
+        // item->dump();
 
-    auto& fields = item->fields();
-    for (int index = 0, count = fields.count(); index < count; ++index) {
-        auto field = fields[index];
-        std::cout << field_ident << hprof.get_string(field.name_id()) << " : ";
-        print_field_value(field, hprof, level);
-        std::cout << std::endl;
+        std::string field_ident;
+        field_ident.assign((level + 1) * 4, ' ');
+
+        auto& fields = item->fields();
+        for (int index = 0, count = fields.count(); index < count; ++index) {
+            auto field = fields[index];
+            std::cout << field_ident << hprof.get_string(field.name_id()) << " : ";
+            print_field_value(field, hprof, level, max_level);
+            std::cout << std::endl;
+        }
+
+        print_static_fields(item->get_class().get(), hprof, level, max_level);
+
+        for (int index = 0; index < level; ++index) {
+                std::cout  << "    ";
+        }
+        std::cout  << "} ";
     }
-
-    print_static_fields(item->get_class().get(), hprof, level);
-
-    for (int index = 0; index < level; ++index) {
-            std::cout  << "    ";
-    }
-    std::cout  << "} ";
 }
 
 void print_primitive_array(const primitive_array_info_t* const array, const dump_data_t& hprof, int level) {
@@ -199,7 +202,7 @@ void print_primitive_array(const primitive_array_info_t* const array, const dump
     std::cout << "]";
 }
 
-void print_object_array(const object_array_info_t* const array, const dump_data_t& hprof, int level) {
+void print_object_array(const object_array_info_t* const array, const dump_data_t& hprof, int level, int max_level) {
     if (array == nullptr) {
         std::cout <<  "null";
         return;
@@ -215,53 +218,61 @@ void print_object_array(const object_array_info_t* const array, const dump_data_
         if (object == nullptr) {
             std::cout << "null";
         }
-        print_object(object, hprof, level + 1);
+        print_object(object, hprof, level + 1, max_level);
     }
     std::cout << "]";
 }
 
-void print_class(const class_info_t* const cls, const dump_data_t& hprof, int level) {
+void print_class(const class_info_t* const cls, const dump_data_t& hprof, int level, int max_level) {
     std::cout << "class "<< hprof.get_string(cls->name_id());
     hprof::id_t super_id = cls->super_id();
     if (super_id != 0) {
         auto super_class = hprof.get_class_by_id(super_id);
         std::cout << " : " << hprof.get_string(super_class->name_id());
     }
-    std::cout << " {" << std::endl;
 
-    std::string field_ident;
-    field_ident.assign((level + 1) * 4, ' ');
+    if (level < max_level) {
+        std::cout << " {" << std::endl;
 
-    for (int index = 0, count = cls->fields_count(); index < count; ++index) {
-        auto field = cls->field(index);
-        std::cout << field_ident << hprof.get_string(field.name_id()) << " : ";
-        print_type(field.type());
-        std::cout << std::endl;
+        std::string field_ident;
+        field_ident.assign((level + 1) * 4, ' ');
+
+        for (int index = 0, count = cls->fields_count(); index < count; ++index) {
+            auto field = cls->field(index);
+            std::cout << field_ident << hprof.get_string(field.name_id()) << " : ";
+            print_type(field.type());
+            std::cout << std::endl;
+        }
+
+        print_static_fields(cls, hprof, level, max_level);
+
+        for (int index = 0; index < level; ++index) {
+                std::cout  << "    ";
+        }
+        std::cout  << "} ";
     }
-
-    print_static_fields(cls, hprof, level);
-
-    for (int index = 0; index < level; ++index) {
-            std::cout  << "    ";
-    }
-    std::cout  << "} ";
 }
 
-void print_object(const object_info_ptr_t& item, const dump_data_t& hprof) {
-    print_object(item, hprof, 0);
+void print_object(const object_info_ptr_t& item, const dump_data_t& hprof, int max_level) {
+    print_object(item, hprof, 0, max_level);
     std::cout << std::endl;
 }
 
-void print_object(const object_info_ptr_t& item, const dump_data_t& hprof, int level) {
+void print_object(const object_info_ptr_t& item, const dump_data_t& hprof, int level, int max_level) {
+    if (item == nullptr) {
+        std::cout << "null";
+        return;
+    }
+
     switch (item->type()) {
         case object_info_t::TYPE_INSTANCE:
-            print_instance(dynamic_cast<const instance_info_t* const>(item.get()), hprof, level);
+            print_instance(dynamic_cast<const instance_info_t* const>(item.get()), hprof, level, max_level);
             break;
         case object_info_t::TYPE_CLASS:
-            print_class(dynamic_cast<const class_info_t* const>(item.get()), hprof, level);
+            print_class(dynamic_cast<const class_info_t* const>(item.get()), hprof, level, max_level);
             break;
         case object_info_t::TYPE_OBJECTS_ARRAY:
-            print_object_array(dynamic_cast<const object_array_info_t* const>(item.get()), hprof, level);
+            print_object_array(dynamic_cast<const object_array_info_t* const>(item.get()), hprof, level, max_level);
             break;
         case object_info_t::TYPE_PRIMITIVES_ARRAY:
             print_primitive_array(dynamic_cast<const primitive_array_info_t* const>(item.get()), hprof, level);

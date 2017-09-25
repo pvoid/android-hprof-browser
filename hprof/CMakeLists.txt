@@ -19,13 +19,13 @@ project(hprof-library C CXX)
 find_package(GTest REQUIRED)
 find_package(Threads REQUIRED)
 
-include_directories(${PROJECT_SOURCE_DIR}/include/)
+include_directories(${PROJECT_SOURCE_DIR}/includes/)
 file(GLOB SOURCE_FILES ${PROJECT_SOURCE_DIR}/src/*.cxx)
 
 add_library(${PROJECT_NAME} ${SOURCE_FILES})
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 14)
 
-set(${PROJECT_NAME}_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/include/
+set(${PROJECT_NAME}_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/includes/
     CACHE INTERNAL "${PROJECT_NAME}: Include Directories" FORCE)
 
 find_package(GTest REQUIRED)
