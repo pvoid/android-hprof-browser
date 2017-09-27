@@ -15,8 +15,8 @@
 ///
 #pragma once
 
-#include "location.hh"
 #include "language_parser.h"
+#include "query.h"
 
 namespace hprof {
     class language_driver {
@@ -24,9 +24,17 @@ namespace hprof {
         language_driver() {}
         virtual ~language_driver() {}
 
-        int parse(const std::string& text);
+        bool parse(const std::string& text);
+
+        void action(query_t::action_t action);
+        void source(query_t::source_t source);
+        void filter(filter_t* filter);
 
         void error(const hprof::location& loc, const std::string& msg);
         void error(const std::string& msg);
+
+        const query_t& query() const { return _query; }
+    private:
+        query_t _query;
     };
 }

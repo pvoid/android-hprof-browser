@@ -23,20 +23,20 @@
 %option noyywrap nounput nodefault batch debug nounput case-insensitive
 
 %{
-  #define YY_USER_ACTION  _location.columns(yyleng);
+  #define YY_USER_ACTION  location->columns(yyleng);
 %}
 
 %%%
 
 %{
-  _location.step();
+  location->step();
 %}
 
-[ \t]+         { _location.step(); }
-[\n]+          { _location.lines(yyleng); _location.step(); }
+[ \t]+          { location->step(); }
+[\n]+           { location->lines(yyleng); location->step(); }
 
-\'[^\n\']+\'   |
-\"[^\n\"]+\"    { lval->strval = strdup(yytext); return token::STRING; }
+\'[^\n\']*\' |
+\"[^\n\"]*\"  { lval->strval = strdup(yytext + 1); lval->strval[yyleng - 2] = '\0'; return token::STRING; }
 
 [0-9]+          { lval->intval = atoi(yytext); return token::INT; }
 
@@ -58,11 +58,15 @@ NOT             { return token::NOT; }
 
 [A-Za-z][A-Za-z0-9_]* { lval->strval = strdup(yytext); return token::NAME; }
 
-"="             { return token::COMPARISON; }
-"<"             { return token::COMPARISON; }
-"<="            { return token::COMPARISON; }
-">"             { return token::COMPARISON; }
-">="            { return token::COMPARISON; }
-"!="            { return token::COMPARISON; }
+"."             { return token::FIELD_ACCESS; }
+"="             { return token::EQUALS; }
+"!="            { return token::NOT_EQUALS; }
+"<"             { return token::LESS; }
+"<="            { return token::LESS_OR_EQUALS; }
+">"             { return token::GREATER; }
+">="            { return token::GREATER_OR_EQUALS; }
+
+"("             { return token::LPARENT; }
+")"             { return token::RPARENT; }
 
 %%

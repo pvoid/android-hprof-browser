@@ -22,12 +22,23 @@
 
 using namespace hprof;
 
-int language_driver::parse (const std::string& text) {
+bool language_driver::parse (const std::string& text) {
     std::istringstream in { text};
     language_scanner scanner { &in };
     language_parser parser(*this, scanner);
+    return parser.parse() == 0;
+}
 
-    return parser.parse();
+void language_driver::action(query_t::action_t action) {
+    _query.action = action;
+}
+
+void language_driver::source(query_t::source_t source) {
+    _query.source = source;
+}
+
+void language_driver::filter(filter_t* filter) {
+    _query.filter.reset(filter);
 }
 
 void language_driver::error (const hprof::location& loc, const std::string& msg) {

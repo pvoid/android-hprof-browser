@@ -111,6 +111,9 @@ bool dump_data_t::prepare_classes() {
             continue;
         }
         current->second->set_name(name->second);
+        if ("java.lang.String" == name->second) {
+            _types_helper = std::move(std::make_unique<types_helper_t>(current->first, *this));
+        }
     }
     return true;
 }
@@ -145,7 +148,7 @@ const std::string& dump_data_t::get_string(id_t id) const {
 
 bool dump_data_t::query(const query_t& query, std::vector<object_info_ptr_t>& result) const {
     switch (query.source) {
-        case query_t::SOURCE_CLASS:
+        case query_t::SOURCE_CLASSES:
             return query_classes(*query.filter, result);
         case query_t::SOURCE_OBJECTS:
             return query_instances(*query.filter, result);

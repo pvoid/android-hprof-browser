@@ -13,6 +13,9 @@
 ///  See the License for the specific language governing permissions and
 ///  limitations under the License.
 ///
-#include "filters_mocks.h"
+#include <gtest/gtest.h>
 
-const std::string mock_filter_helper_t::_empty {};
+int main(int argc, char* argv[]) {
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+}

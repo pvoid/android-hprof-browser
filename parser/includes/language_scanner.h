@@ -31,13 +31,11 @@ namespace hprof {
 
     class language_scanner : public yyFlexLexer {
     public:
-        explicit language_scanner(std::istream* in) : yyFlexLexer(in), _location() {}
+        explicit language_scanner(std::istream* in) : yyFlexLexer(in) {}
         virtual ~language_scanner() {}
 
         using yyFlexLexer::yylex;
         virtual hprof::language_parser::token::yytokentype yylex(semantic_type * const lval, location_type *location,
             hprof::language_driver& driver, hprof::language_scanner& scanner);
-    private:
-        location_type _location;
     };
 }

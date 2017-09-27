@@ -18,11 +18,13 @@
 #include "hprof_types.h"
 #include "filters.h"
 #include "query.h"
+#include "hprof_types_helper.h"
 
 namespace hprof {
     class dump_data_t : filter_helper_t {
     public:
-        dump_data_t(size_t id_size, const time_t& time) : _id_size(id_size), _time(time), _is_index_built(false) {}
+        dump_data_t(size_t id_size, const time_t& time) :
+            _id_size(id_size), _time(time), _is_index_built(false), _types_helper(std::make_unique<types_helper_t>(0, *this)) {}
         ~dump_data_t() {}
 
         size_t id_size() const { return _id_size; }
@@ -38,7 +40,8 @@ namespace hprof {
         bool query(const query_t& query, std::vector<object_info_ptr_t>& result) const;
         virtual const std::string& get_string(id_t id) const override;
         virtual class_info_ptr_t get_class_by_id(id_t id) const override;
-        object_info_ptr_t get_object_by_id(id_t id) const;
+        virtual const types_helper_t& types_helper() const override { return *_types_helper; }
+        virtual object_info_ptr_t get_object_by_id(id_t id) const override;
     private:
         bool prepare_gc_roots();
         bool prepare_instances();
@@ -55,5 +58,6 @@ namespace hprof {
         std::vector<gc_root_t> _gc_roots;
         classes_map_t _classes;
         strings_map_t _strings;
+        std::unique_ptr<types_helper_t> _types_helper;
     };
 }
