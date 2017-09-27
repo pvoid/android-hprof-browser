@@ -27,7 +27,7 @@ public:
     explicit filter_mock_t(filter_t::filter_result_t value) : _value(value) {}
     virtual ~filter_mock_t() {}
 
-    virtual filter_result_t operator()(const object_info_t* const object, const filter_helper_t& helper) const override {
+    virtual filter_result_t operator()(const object_info_t* object, const filter_helper_t& helper) const override {
         return _value;
     }
 private:
@@ -52,6 +52,14 @@ public:
             return _empty;
         }
         return item->second;
+    }
+
+    virtual object_info_ptr_t get_object_by_id(hprof::id_t id) const override {
+        return object_info_ptr_t {};
+    }
+
+    virtual const types_helper_t& types_helper() const override {
+
     }
 
     void add(class_info_ptr_t cls) {

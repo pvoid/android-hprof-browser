@@ -14,6 +14,7 @@
 ///  limitations under the License.
 ///
 #include "tools.h"
+#include "hprof_types_helper.h"
 
 #include <iostream>
 #include <type_traits>
@@ -265,9 +266,30 @@ void print_object(const object_info_ptr_t& item, const dump_data_t& hprof, int l
     }
 
     switch (item->type()) {
-        case object_info_t::TYPE_INSTANCE:
-            print_instance(dynamic_cast<const instance_info_t* const>(item.get()), hprof, level, max_level);
+        case object_info_t::TYPE_INSTANCE: {
+            const instance_info_t* instance = dynamic_cast<const instance_info_t* const>(item.get());
+            if (hprof.types_helper().is_string(*instance)) {
+                std::string result;
+                auto value_type = hprof.types_helper().get_string_value(*instance, result);
+
+                switch (value_type) {
+                    case types_helper_t::Null:
+                        std::cout << "null";
+                        break;
+                    case types_helper_t::Value:
+                        std::cout << "\"" << result << "\"";
+                        break;
+                    case types_helper_t::NotString:
+                    case types_helper_t::Invalid:
+                    default:
+                        std::cout << "Invalid string";
+                        break;
+                }
+                break;
+            }
+            print_instance(instance, hprof, level, max_level);
             break;
+        }
         case object_info_t::TYPE_CLASS:
             print_class(dynamic_cast<const class_info_t* const>(item.get()), hprof, level, max_level);
             break;

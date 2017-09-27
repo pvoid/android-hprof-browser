@@ -19,6 +19,8 @@
 #include "hprof_istream_test.h"
 #include "name_tokenizer_test.h"
 #include "filters_test.h"
+#include "filters_logical_test.h"
+#include "filters_instanceof.h"
 
 int main(int argc, char* argv[]) {
     ::testing::InitGoogleTest(&argc, argv);

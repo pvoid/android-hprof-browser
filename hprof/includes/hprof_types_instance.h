@@ -144,7 +144,6 @@ namespace hprof {
                     }
                     default:
                         assert(0);
-
                 }
             }
 
@@ -177,6 +176,7 @@ namespace hprof {
             friend class instance_info_impl_t;
         public:
             size_t count() const { return _class->fields_count(); }
+
             field_t operator[](size_t index) const {
                 field_info_t info = _class->field(index);
                 return field_t { _id_size, info.name_id(), info.type(), info.offset(), _data };

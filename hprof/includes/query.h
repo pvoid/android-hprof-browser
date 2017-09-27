@@ -20,9 +20,12 @@
 
 namespace hprof {
     struct query_t {
-        enum {
+        enum action_t {
+            ACTION_SHOW
+        } action;
+        enum source_t {
             SOURCE_OBJECTS,
-            SOURCE_CLASS
+            SOURCE_CLASSES
         } source;
         std::unique_ptr<filter_t> filter;
     };
