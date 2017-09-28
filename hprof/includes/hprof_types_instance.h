@@ -151,8 +151,14 @@ namespace hprof {
             field_t(u_int8_t id_size, id_t name, jvm_type_t type, size_t offset, u_int8_t* data) :
                 _id_size(id_size), _name_id(name), _type(type), _offset(offset), _data(data) {}
 
+            field_t() : _id_size(0), _name_id(0), _type(JVM_TYPE_UNKNOWN),_offset(0), _data(nullptr) {}
+
             template<typename T>
             bool read_value(T& value) const {
+                if (_data == nullptr) {
+                    return false;
+                }
+
                 value = 0;
                 for (auto val = _data + _offset; val < _data + _offset + sizeof(value); ++val) {
                     if (sizeof(value) > 1) {
@@ -175,19 +181,40 @@ namespace hprof {
             friend class instance_info_t;
             friend class instance_info_impl_t;
         public:
-            size_t count() const { return _class->fields_count(); }
+            size_t count() const {
+                size_t count = 0;
+                auto cls = _class;
+                while (cls != nullptr) {
+                    count += cls->fields_count();
+                    cls = cls->super();
+                }
+                return count;
+            }
 
             field_t operator[](size_t index) const {
-                field_info_t info = _class->field(index);
-                return field_t { _id_size, info.name_id(), info.type(), info.offset(), _data };
+                auto cls = _class;
+                size_t offset = 0;
+                while (cls != nullptr && index >= cls->fields_count()) {
+                    index -= cls->fields_count();
+                    offset += cls->fields_size();
+                    cls = cls->super();
+                }
+
+                if (cls == nullptr) {
+                    return field_t {};
+                }
+
+                field_info_t info = cls->field(index);
+
+                return field_t {_id_size, info.name_id(), info.type(), offset + info.offset(), _data};
             }
 
         private:
-            explicit fields_t(u_int8_t id_size, u_int8_t* data) : _id_size(id_size), _data(data) {}
+            explicit fields_t(u_int8_t id_size, u_int8_t *data) : _id_size(id_size), _data(data) {}
         private:
             u_int8_t _id_size;
             class_info_ptr_t _class;
-            u_int8_t* _data;
+            u_int8_t *_data;
         };
     private:
         instance_info_t(u_int8_t id_size, id_t id, id_t class_id, int32_t stack_id, int32_t size) :

@@ -32,7 +32,7 @@ namespace hprof {
 
         bool analyze();
         bool add(const std::vector<gc_root_t>& roots);
-        bool add(const instances_map_t& instances);
+        bool add(const std::vector<object_info_ptr_t>& instances);
         bool add(const classes_map_t& classes);
         bool add(const strings_map_t& strings);
         bool add(const array_map_t& arrays);

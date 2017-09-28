@@ -32,12 +32,19 @@ bool dump_data_t::add(const std::vector<gc_root_t>& roots) {
     return true;
 }
 
-bool dump_data_t::add(const instances_map_t& instances) {
+bool dump_data_t::add(const std::vector<object_info_ptr_t>& instances) {
     if (_is_index_built) {
         return false;
     }
 
-    _all.insert(std::begin(instances), std::end(instances));
+    for (auto& item : instances) {
+        auto current = _all.find(item->id());
+        if (current != std::end(_all)) {
+          std::cout << "Dublicate id: " << item->id() << std::endl;
+        }
+        _all.emplace(item->id(), item);
+    }
+
     return true;
 }
 
@@ -107,12 +114,18 @@ bool dump_data_t::prepare_gc_roots() {
 bool dump_data_t::prepare_classes() {
     for (auto current = std::begin(_classes); current != std::end(_classes); ++current) {
         auto name = _strings.find(current->second->name_id());
-        if (name == std::end(_strings)) {
-            continue;
+        if (name != std::end(_strings)) {
+            current->second->set_name(name->second);
+            if ("java.lang.String" == name->second) {
+                _types_helper = std::move(std::make_unique<types_helper_t>(current->first, *this));
+            }
         }
-        current->second->set_name(name->second);
-        if ("java.lang.String" == name->second) {
-            _types_helper = std::move(std::make_unique<types_helper_t>(current->first, *this));
+
+        if (current->second->super_id() != 0) {
+            auto super = _classes.find(current->second->super_id());
+            if (super != std::end(_classes)) {
+                current->second->set_super_class(super->second);
+            }
         }
     }
     return true;
