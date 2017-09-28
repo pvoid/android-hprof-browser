@@ -16,7 +16,6 @@
 cmake_minimum_required(VERSION 3.5)
 project(hprof-browser)
 
-set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CXX_FLAGS -fno-exceptions)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)

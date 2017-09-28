@@ -66,11 +66,28 @@ set(${PROJECT_NAME}_INCLUDE_DIRS ${PARSER_LIBRARY_INLUDE_DIRS}
 
 find_package(GTest REQUIRED)
 find_package(Threads REQUIRED)
+find_program(LCOV lcov)
+find_program(GENHTML genhtml )
 
 include_directories(${GTEST_INCLUDE_DIRS})
 file(GLOB TEST_SOURCE_FILES ${PROJECT_SOURCE_DIR}/test/*.cxx)
 
 add_executable(${PROJECT_NAME}-test ${SOURCE_FILES} ${FLEX_OUTPUT} ${BISON_OUTPUT} ${TEST_SOURCE_FILES})
-set_property(TARGET ${PROJECT_NAME}-test PROPERTY CXX_STANDARD 14)
 target_link_libraries(${PROJECT_NAME}-test ${CMAKE_THREAD_LIBS_INIT} ${FLEX_LIBRARIES} ${BISON_LIBRARIES} hprof-library gtest)
+
+set_property(TARGET ${PROJECT_NAME}-test PROPERTY CXX_STANDARD 14)
+set_target_properties(${PROJECT_NAME}-test PROPERTIES COMPILE_FLAGS "-fprofile-arcs -ftest-coverage")
+set_target_properties(${PROJECT_NAME}-test PROPERTIES LINK_FLAGS "--coverage")
+
 add_test(${PROJECT_NAME} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${PROJECT_NAME}-test)
+
+add_custom_target(${PROJECT_NAME}-coverage
+   COMMAND ${LCOV} --directory . --zerocounters
+   COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${PROJECT_NAME}-test
+   COMMAND ${LCOV} --no-external -d . -b ${PROJECT_SOURCE_DIR} --gcov-tool ${CMAKE_SOURCE_DIR}/tools/llvm-gcov --capture -o ./${PROJECT_NAME}-coverage-report.info
+   COMMAND ${LCOV} --remove ./${PROJECT_NAME}-coverage-report.info '*/language_parser.cxx' '*/language_scanner.cxx' 'test/*' -o ./${PROJECT_NAME}-coverage-report.info
+   COMMAND ${GENHTML} ./${PROJECT_NAME}-coverage-report.info -o ${CMAKE_BINARY_DIR}/reports/${PROJECT_NAME}/
+
+   DEPENDS ${PROJECT_NAME}-test
+   COMMENT "Collecting code coverage data"
+)
