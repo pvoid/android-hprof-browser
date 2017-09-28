@@ -36,6 +36,8 @@ namespace hprof {
 
         id_t super_id() const { return _super_id; }
 
+        const std::shared_ptr<class_info_t>& super() const { return _super_class; }
+
         id_t name_id() const { return _name_id; }
 
         int32_t has_link_to(id_t id) const override {
@@ -73,6 +75,10 @@ namespace hprof {
             return field_info_t {0, JVM_TYPE_UNKNOWN, 0};
         }
 
+        size_t fields_size() const { return _fields_size; }
+
+        size_t instance_size() const { return _size; }
+
         size_t static_fields_count() const { return _static_fields.size(); }
 
         const static_field_t& static_field(size_t index) const {
@@ -87,12 +93,14 @@ namespace hprof {
     private:
         id_t _class_id;
         id_t _super_id;
+        std::shared_ptr<class_info_t> _super_class;
         id_t _class_loader_id;
         id_t _name_id;
         name_tokens _tokens;
         int32_t _seq_number;
         int32_t _stack_trace_id;
         int32_t _size;
+        int32_t _fields_size;
         vector<field_info_t> _fields;
         vector<static_field_t> _static_fields;
         vector<object_info_ptr_t> _instances;
@@ -133,8 +141,12 @@ namespace hprof {
             _tokens.set(name);
         }
 
-        void set_data_size(size_t size) {
+        void set_instance_size(size_t size) {
             _size = size;
+        }
+
+        void set_fields_size(size_t size) {
+            _fields_size = size;
         }
 
         void add_field_info(id_t name_id, jvm_type_t type, size_t offset) {
@@ -143,6 +155,10 @@ namespace hprof {
 
         void add_static_field(id_t name, jvm_type_t type, const u_int8_t* value, size_t size) {
             _static_fields.emplace_back(name, type, value, size);
+        }
+
+        void set_super_class(std::shared_ptr<class_info_impl_t> cls) {
+            _super_class = cls;
         }
     };
 

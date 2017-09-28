@@ -95,7 +95,7 @@ namespace hprof {
             const strings_map_t& strings() const { return _strings; }
             const std::vector<gc_root_t>& roots() const { return _gc_roots; }
             const classes_map_t& classes() const { return _classes; }
-            const instances_map_t& instances() const { return _instances; }
+            const std::vector<object_info_ptr_t>& instances() const { return _instances; }
             const array_map_t& arrays() const { return _arrays; }
         private:
             struct loaded_class_t {
@@ -128,7 +128,7 @@ namespace hprof {
             std::vector<heap_info_t> _heaps;
             std::vector<gc_root_t> _gc_roots;
             classes_map_t _classes;
-            instances_map_t _instances;
+            std::vector<object_info_ptr_t> _instances;
             array_map_t _arrays;
         };
     };

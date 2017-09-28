@@ -48,11 +48,14 @@ unique_ptr<dump_data_t> data_reader_v103_t::build(hprof_istream& in) const {
     }
 
     auto hprof = std::make_unique<dump_data_t>(size, hprof_time);
-    hprof->add(reader.strings());
-    hprof->add(reader.classes());
-    hprof->add(reader.roots());
-    hprof->add(reader.instances());
-    hprof->add(reader.arrays());
+
+    if (hprof != nullptr) {
+        hprof->add(reader.strings());
+        hprof->add(reader.classes());
+        hprof->add(reader.roots());
+        hprof->add(reader.instances());
+        hprof->add(reader.arrays());
+    }
 
     return hprof;
 }
@@ -276,7 +279,7 @@ data_reader_v103_t::parse_result_t data_reader_v103_t::reader::read_heap_dump_se
         [&heap_info] (auto item) -> auto { item->set_heap_type(heap_info.type); return std::make_pair(item->id(), item); });
 
     std::transform(std::begin(instances), std::end(instances), std::inserter(_instances, std::end(_instances)),
-        [&heap_info] (auto item) -> auto { item->set_heap_type(heap_info.type); return std::make_pair(item->id(), item); });
+        [&heap_info] (auto item) -> auto { item->set_heap_type(heap_info.type); return item; });
 
     std::transform(std::begin(arrays), std::end(arrays), std::inserter(_arrays, std::end(_arrays)),
         [&heap_info] (auto item) -> auto { item->set_heap_type(heap_info.type); return std::make_pair(item->id(), item); });
@@ -319,7 +322,7 @@ bool data_reader_v103_t::reader::read_class_dump(hprof_istream& in, ssize_t& dat
     read_id(in, data_left);
     read_id(in, data_left);
 
-    info.set_data_size(in.read_int32());
+    info.set_instance_size(in.read_int32());
     data_left -= 4;
     // pool, value is always empty
     in.read_int16();
@@ -353,7 +356,8 @@ bool data_reader_v103_t::reader::read_class_dump(hprof_istream& in, ssize_t& dat
     int16_t fields_count = in.read_int16();
     data_left -= 2;
 
-    for (size_t index = 0, offset = 0; index < fields_count; ++index) {
+    size_t offset = 0;
+    for (size_t index = 0; index < fields_count; ++index) {
         id_t field_name = read_id(in, data_left);
         auto type = static_cast<hprof_type_t>(in.read_byte());
         --data_left;
@@ -363,6 +367,7 @@ bool data_reader_v103_t::reader::read_class_dump(hprof_istream& in, ssize_t& dat
         info.add_field_info(field_name, to_jvm_type(type), offset);
         offset += get_field_size(type);
     }
+    info.set_fields_size(offset);
 
     return !in.eof();
 }
