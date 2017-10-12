@@ -18,6 +18,7 @@ matrix:
           packages:
             - clang-5.0
             - g++-6
+            - lcov
       env:
         - MATRIX_EVAL="CC=clang-5.0 && CXX=clang++-5.0"
 
@@ -29,16 +30,24 @@ before_install:
     - tar -xf bison-3.0.4.tar.gz; cd bison-3.0.4; ./configure --prefix=$HOME/bison; make -j 4 install; cd $PWD/..;
     - export PATH=$HOME/bison/bin:$PATH
     - bison --version
-    # GTest
+    # GTest and GMock
     - sudo apt-get -qq update
     - sudo apt-get install -y libgtest-dev
-    - sudo wget https://github.com/google/googletest/archive/release-1.7.0.tar.gz
-    - sudo tar xf release-1.7.0.tar.gz
-    - cd googletest-release-1.7.0
-    - sudo cmake -DBUILD_SHARED_LIBS=ON .
+    - sudo wget -O gtest.tar.gz https://github.com/google/googletest/archive/release-1.7.0.tar.gz
+    - sudo wget -O gmock.tar.gz https://github.com/google/googlemock/archive/release-1.7.0.tar.gz
+    - sudo tar xf gtest.tar.gz
+    - sudo tar xf gmock.tar.gz
+    - sudo mv googletest-release-1.7.0 gtest
+    - cd googlemock-release-1.7.0
+    - sudo cmake .
     - sudo make
-    - sudo cp -a include/gtest /usr/include
-    - sudo cp -a libgtest_main.so libgtest.so /usr/lib/
+    - sudo cp -a include/gmock /usr/include
+    - sudo cp -a libgmock_main.a libgmock.a /usr/lib/
+    - cd ../gtest/
+    - sudo cmake .
+    - sudo make
+    - sudo cp -a ../gtest/include/gtest /usr/include
+    - sudo cp -a libgtest_main.a libgtest.a /usr/lib/
     # CMake
     - mkdir $HOME/usr
     - cd $HOME/usr

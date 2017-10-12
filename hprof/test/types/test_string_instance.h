@@ -1,5 +1,4 @@
-///            // memcpy(&(this->long_value), value, std::min(size, sizeof(this->long_value)));
-
+///
 ///  Copyright 2017 Dmitry "PVOID" Petukhov
 ///
 ///  Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,7 +15,21 @@
 ///
 #pragma once
 
-#include "types.h"
-#include "objects_index.h"
+#include <gtest/gtest.h>
 
-void print_object(const hprof::object_info_ptr_t& item, const hprof::objects_index_t& objects, int max_level);
+#include "mocks.h"
+#include "types/string_instance.h"
+
+using namespace hprof;
+
+TEST(string_info_impl_t, When_Type_Expect_String) {
+    mock_objects_index_t objects;
+    auto text = string_info_impl_t::create(*instance_info_impl_t::create(4, 0xc0f060, 0), objects);
+    ASSERT_EQ(object_info_t::TYPE_STRING, text->type());
+}
+
+TEST(string_info_impl_t, When_DefaultValue_Expect_EmptyValue) {
+    mock_objects_index_t objects;
+    auto text = string_info_impl_t::create(*instance_info_impl_t::create(4, 0xc0f060, 0), objects);
+    ASSERT_EQ("", text->value());
+}

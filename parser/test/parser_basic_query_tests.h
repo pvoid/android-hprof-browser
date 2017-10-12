@@ -1,5 +1,4 @@
-///            // memcpy(&(this->long_value), value, std::min(size, sizeof(this->long_value)));
-
+///
 ///  Copyright 2017 Dmitry "PVOID" Petukhov
 ///
 ///  Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,9 +13,16 @@
 ///  See the License for the specific language governing permissions and
 ///  limitations under the License.
 ///
-#pragma once
+#include <gtest/gtest.h>
 
-#include "types.h"
-#include "objects_index.h"
+#include "language_driver.h"
 
-void print_object(const hprof::object_info_ptr_t& item, const hprof::objects_index_t& objects, int max_level);
+using namespace hprof;
+
+TEST(Parser, SourceObjects) {
+    language_driver driver;
+    auto result = driver.parse("show objects");
+    ASSERT_TRUE(result);
+    ASSERT_EQ(query_t::SOURCE_OBJECTS, driver.query().source);
+    ASSERT_EQ(nullptr, driver.query().filter);
+}

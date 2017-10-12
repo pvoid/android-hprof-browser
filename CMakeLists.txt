@@ -16,11 +16,28 @@
 cmake_minimum_required(VERSION 3.5)
 project(hprof-browser)
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/tools/cmake/")
 set(CMAKE_CXX_FLAGS -fno-exceptions)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+find_package(GTest REQUIRED)
+find_package(GMock REQUIRED)
+find_package(Threads REQUIRED)
+find_program(LCOV lcov)
+if (NOT LCOV)
+    message(FATAL_ERROR "lcov is not flound!")
+else()
+    message("-- Found lcov: ${LCOV}")
+endif()
+find_program(GENHTML genhtml)
+if (NOT GENHTML)
+    message(FATAL_ERROR "genhtml is not flound!")
+else()
+    message("-- Found genhtml: ${GENHTML}")
+endif()
 
 enable_testing()
 

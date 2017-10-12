@@ -26,7 +26,7 @@ add_custom_command(
     COMMAND ${BISON_EXECUTABLE}
             --defines=${BISON_OUTPUT_HEADER}
             --output=${BISON_OUTPUT_PARSER}
-            ${PROJECT_SOURCE_DIR}/src/language_parser.yy
+            ${PROJECT_SOURCE_DIR}/src/language_parser.y
     COMMENT "Generating language parser"
 )
 
@@ -52,27 +52,23 @@ set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES
 "${PROJECT_SOURCE_DIR}/includes/generated/stack.hh;${PROJECT_SOURCE_DIR}/includes/generated/position.hh;${PROJECT_SOURCE_DIR}/includes/generated/location.hh;")
 
 file(GLOB SOURCE_FILES ${PROJECT_SOURCE_DIR}/src/*.cxx)
+set(INCLUDE_DIRECTORIES )
 
-set(PARSER_LIBRARY_INLUDE_DIRS ${FLEX_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR}/includes/ ${PROJECT_SOURCE_DIR}/includes/generated/)
-include_directories(${hprof-library_INCLUDE_DIRS} ${PARSER_LIBRARY_INLUDE_DIRS})
+set(PARSER_LIBRARY_INLUDE_DIRS ${hprof-library_INCLUDE_DIRS} ${FLEX_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR}/includes/ ${PROJECT_SOURCE_DIR}/includes/generated/)
 
 add_library(${PROJECT_NAME} ${SOURCE_FILES} ${FLEX_OUTPUT} ${BISON_OUTPUT})
 target_link_libraries(${PROJECT_NAME} ${FLEX_LIBRARIES} ${BISON_LIBRARIES})
+target_include_directories(${PROJECT_NAME} PRIVATE ${PARSER_LIBRARY_INLUDE_DIRS})
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 14)
 
 set(${PROJECT_NAME}_INCLUDE_DIRS ${PARSER_LIBRARY_INLUDE_DIRS}
     CACHE INTERNAL "${PROJECT_NAME}: Include Directories" FORCE)
 
-find_package(GTest REQUIRED)
-find_package(Threads REQUIRED)
-find_program(LCOV lcov)
-find_program(GENHTML genhtml )
-
-include_directories(${GTEST_INCLUDE_DIRS})
 file(GLOB TEST_SOURCE_FILES ${PROJECT_SOURCE_DIR}/test/*.cxx)
 
 add_executable(${PROJECT_NAME}-test ${SOURCE_FILES} ${FLEX_OUTPUT} ${BISON_OUTPUT} ${TEST_SOURCE_FILES})
+target_include_directories(${PROJECT_NAME}-test PRIVATE ${PARSER_LIBRARY_INLUDE_DIRS} ${GTEST_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME}-test ${CMAKE_THREAD_LIBS_INIT} ${FLEX_LIBRARIES} ${BISON_LIBRARIES} hprof-library gtest)
 
 set_property(TARGET ${PROJECT_NAME}-test PROPERTY CXX_STANDARD 14)
@@ -85,7 +81,7 @@ add_custom_target(${PROJECT_NAME}-coverage
    COMMAND ${LCOV} --directory . --zerocounters
    COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${PROJECT_NAME}-test
    COMMAND ${LCOV} --no-external -d . -b ${PROJECT_SOURCE_DIR} --gcov-tool ${CMAKE_SOURCE_DIR}/tools/llvm-gcov --capture -o ./${PROJECT_NAME}-coverage-report.info
-   COMMAND ${LCOV} --remove ./${PROJECT_NAME}-coverage-report.info '*/language_parser.cxx' '*/language_scanner.cxx' 'test/*' -o ./${PROJECT_NAME}-coverage-report.info
+   COMMAND ${LCOV} --remove ./${PROJECT_NAME}-coverage-report.info '*/language_parser.cxx' '*/language_scanner.cxx' '*/test/*' -o ./${PROJECT_NAME}-coverage-report.info
    COMMAND ${GENHTML} ./${PROJECT_NAME}-coverage-report.info -o ${CMAKE_BINARY_DIR}/reports/${PROJECT_NAME}/
 
    DEPENDS ${PROJECT_NAME}-test
