@@ -17,20 +17,20 @@
 
 #include <fstream>
 
-class hprof_istream {
+class hprof_istream_t {
 public:
-    hprof_istream() {}
+    hprof_istream_t() {}
 
-    explicit hprof_istream(std::ifstream&& in) : _stream(std::move(in)) {}
-    ~hprof_istream() {
+    explicit hprof_istream_t(std::ifstream&& in) : _stream(std::move(in)) {}
+    ~hprof_istream_t() {
         _stream.close();
     }
 
-    hprof_istream(const hprof_istream&) = delete;
-    hprof_istream(hprof_istream&&) = default;
+    hprof_istream_t(const hprof_istream_t&) = delete;
+    hprof_istream_t(hprof_istream_t&&) = default;
 
-    hprof_istream& operator=(const hprof_istream&) = delete;
-    hprof_istream& operator=(hprof_istream&&) = default;
+    hprof_istream_t& operator=(const hprof_istream_t&) = delete;
+    hprof_istream_t& operator=(hprof_istream_t&&) = default;
 
     bool is_open() const { return _stream.is_open(); }
 

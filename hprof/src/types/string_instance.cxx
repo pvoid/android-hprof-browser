@@ -1,5 +1,4 @@
-///            // memcpy(&(this->long_value), value, std::min(size, sizeof(this->long_value)));
-
+///
 ///  Copyright 2017 Dmitry "PVOID" Petukhov
 ///
 ///  Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,9 +13,8 @@
 ///  See the License for the specific language governing permissions and
 ///  limitations under the License.
 ///
-#pragma once
+#include "types/string_instance.h"
 
-#include "types.h"
-#include "objects_index.h"
+using namespace hprof;
 
-void print_object(const hprof::object_info_ptr_t& item, const hprof::objects_index_t& objects, int max_level);
+string_info_impl_t::text_converter string_info_impl_t::_converter {"\xFF ", u"\xFFFF"};

@@ -34,18 +34,18 @@ bool file_t::open() {
         return false;
     }
 
-    _stream = std::move(hprof_istream { std::move(in) });
+    _stream = std::move(hprof_istream_t { std::move(in) });
     return true;
 }
 
-std::unique_ptr<dump_data_t> file_t::read_dump() const {
+std::unique_ptr<heap_profile_t> file_t::read_dump() const {
     if (!is_open() || _file_magic.empty()) {
-        return std::unique_ptr<dump_data_t>();
+        return std::unique_ptr<heap_profile_t>();
     }
 
     const data_reader_t* reader = _factory->reader(_file_magic);
     if (reader == nullptr) {
-        return std::unique_ptr<dump_data_t>();
+        return std::unique_ptr<heap_profile_t>();
     }
 
     return reader->build(_stream);

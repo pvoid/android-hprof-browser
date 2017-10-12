@@ -15,12 +15,23 @@
 ///
 #include <gtest/gtest.h>
 
-#include "hprof_data_reader_factory_test.h"
-#include "hprof_istream_test.h"
-#include "name_tokenizer_test.h"
-#include "filters_test.h"
-#include "filters_logical_test.h"
-#include "filters_instanceof.h"
+#include "test_name_tokenizer.h"
+#include "test_hprof_istream.h"
+#include "test_data_reader_factory.h"
+// Test types
+#include "types/test_object.h"
+#include "types/test_fields.h"
+#include "types/test_class.h"
+#include "types/test_gc_root.h"
+#include "types/test_instance.h"
+#include "types/test_string_instance.h"
+#include "types/test_objects_array.h"
+#include "types/test_primitives_array.h"
+#include "test_types.h"
+// Test filters
+#include "filters/test_classname.h"
+#include "filters/test_logical.h"
+#include "filters/test_instance_of.h"
 
 int main(int argc, char* argv[]) {
     ::testing::InitGoogleTest(&argc, argv);

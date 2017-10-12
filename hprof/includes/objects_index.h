@@ -1,5 +1,4 @@
-///            // memcpy(&(this->long_value), value, std::min(size, sizeof(this->long_value)));
-
+///
 ///  Copyright 2017 Dmitry "PVOID" Petukhov
 ///
 ///  Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,6 +16,10 @@
 #pragma once
 
 #include "types.h"
-#include "objects_index.h"
 
-void print_object(const hprof::object_info_ptr_t& item, const hprof::objects_index_t& objects, int max_level);
+namespace hprof {
+    class objects_index_t {
+    public:
+        virtual object_info_ptr_t find_object(jvm_id_t id) const = 0;
+    };
+}

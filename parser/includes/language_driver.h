@@ -15,8 +15,8 @@
 ///
 #pragma once
 
+#include "hprof.h"
 #include "language_parser.h"
-#include "query.h"
 
 namespace hprof {
     class language_driver {

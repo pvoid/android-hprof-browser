@@ -14,6 +14,7 @@
 ///  limitations under the License.
 ///
 #include <gtest/gtest.h>
+#include "parser_basic_query_tests.h"
 
 int main(int argc, char* argv[]) {
     ::testing::InitGoogleTest(&argc, argv);

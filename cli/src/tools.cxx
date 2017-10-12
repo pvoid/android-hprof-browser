@@ -13,93 +13,97 @@
 ///  See the License for the specific language governing permissions and
 ///  limitations under the License.
 ///
+#include "hprof.h"
+#include "types.h"
 #include "tools.h"
-#include "hprof_types_helper.h"
 
 #include <iostream>
 #include <type_traits>
+#include <cassert>
 
 using namespace hprof;
 
-void print_object(const object_info_ptr_t& item, const dump_data_t& hprof, int level, int max_level);
+void print_object(const object_info_ptr_t& item, const objects_index_t& objects, int level, int max_level);
 
 inline void print_type(jvm_type_t type) {
     switch(type) {
-        case JVM_TYPE_UNKNOWN:
+        case jvm_type_t::JVM_TYPE_UNKNOWN:
             std::cout << "unknwon";
             break;
-        case JVM_TYPE_BOOL:
+        case jvm_type_t::JVM_TYPE_BOOL:
             std::cout << "boolean";
             break;
-        case JVM_TYPE_BYTE:
+        case jvm_type_t::JVM_TYPE_BYTE:
             std::cout << "byte";
             break;
-        case JVM_TYPE_CHAR:
+        case jvm_type_t::JVM_TYPE_CHAR:
             std::cout << "char";
             break;
-        case JVM_TYPE_SHORT:
+        case jvm_type_t::JVM_TYPE_SHORT:
             std::cout << "short";
             break;
-        case JVM_TYPE_INT:
+        case jvm_type_t::JVM_TYPE_INT:
             std::cout << "int";
             break;
-        case JVM_TYPE_LONG:
+        case jvm_type_t::JVM_TYPE_LONG:
             std::cout << "long";
             break;
-        case JVM_TYPE_FLOAT:
+        case jvm_type_t::JVM_TYPE_FLOAT:
             std::cout << "float";
             break;
-        case JVM_TYPE_DOUBLE:
+        case jvm_type_t::JVM_TYPE_DOUBLE:
             std::cout << "double";
             break;
-        case JVM_TYPE_OBJECT:
+        case jvm_type_t::JVM_TYPE_OBJECT:
             std::cout << "object";
             break;
     }
 }
 
-template <typename T>
-void print_field_value(T field, const dump_data_t& hprof, int level, int max_level) {
+void print_field_value(const field_value_t& field, const objects_index_t& objects, int level, int max_level) {
+    print_type(field.type());
+
+    std::cout << " = ";
+
     switch (field.type()) {
-        case JVM_TYPE_UNKNOWN:
-            std::cout << "unknwon";
+        case jvm_type_t::JVM_TYPE_UNKNOWN:
             break;
-        case JVM_TYPE_BOOL:
-            std::cout << "boolean = " << (static_cast<jvm_bool_t>(field) ? "true" : "false");
+        case jvm_type_t::JVM_TYPE_BOOL:
+            std::cout << (static_cast<jvm_bool_t>(field) ? "true" : "false");
             break;
-        case JVM_TYPE_BYTE:
-            std::cout << "byte = " << (int) static_cast<jvm_byte_t>(field);
+        case jvm_type_t::JVM_TYPE_BYTE:
+            std::cout << (int) static_cast<jvm_byte_t>(field);
             break;
-        case JVM_TYPE_CHAR:
-            std::cout << "char = " << static_cast<jvm_char_t>(field);
+        case jvm_type_t::JVM_TYPE_CHAR:
+            std::cout << static_cast<jvm_char_t>(field);
             break;
-        case JVM_TYPE_SHORT:
-            std::cout << "short = " << static_cast<jvm_short_t>(field);
+        case jvm_type_t::JVM_TYPE_SHORT:
+            std::cout << static_cast<jvm_short_t>(field);
             break;
-        case JVM_TYPE_INT:
-            std::cout << "int = " << static_cast<jvm_int_t>(field);
+        case jvm_type_t::JVM_TYPE_INT:
+            std::cout << static_cast<jvm_int_t>(field);
             break;
-        case JVM_TYPE_LONG:
-            std::cout << "long = " << static_cast<jvm_long_t>(field);
+        case jvm_type_t::JVM_TYPE_LONG:
+            std::cout << static_cast<jvm_long_t>(field);
             break;
-        case JVM_TYPE_FLOAT:
-            std::cout << "float = " << static_cast<jvm_float_t>(field);
+        case jvm_type_t::JVM_TYPE_FLOAT:
+            std::cout << static_cast<jvm_float_t>(field);
             break;
-        case JVM_TYPE_DOUBLE:
-            std::cout << "double = " << static_cast<jvm_double_t>(field);
+        case jvm_type_t::JVM_TYPE_DOUBLE:
+            std::cout << static_cast<jvm_double_t>(field);
             break;
-        case JVM_TYPE_OBJECT: {
-            hprof::id_t id = static_cast<hprof::id_t>(field);
-            std::cout << "object = [0x" << std::hex << id << std::dec << "] ";
+        case jvm_type_t::JVM_TYPE_OBJECT: {
+            jvm_id_t id = static_cast<jvm_id_t>(field);
+            std::cout << "[0x" << std::hex << id << std::dec << "] ";
 
             if (id == 0) {
                 std::cout << "null";
             } else {
-                object_info_ptr_t obj = hprof.get_object_by_id(id);
+                object_info_ptr_t obj = objects.find_object(id);
                 if (obj == nullptr) {
                     std::cout << "<not found>";
                 } else {
-                    print_object(obj, hprof, level + 1, max_level);
+                    print_object(obj, objects, level + 1, max_level);
                 }
             }
 
@@ -108,47 +112,39 @@ void print_field_value(T field, const dump_data_t& hprof, int level, int max_lev
     }
 }
 
-void print_static_fields(const class_info_t* const cls, const dump_data_t& hprof, int level, int max_level) {
-    std::string field_ident;
-    field_ident.assign((level + 1) * 4, ' ');
+void print_instance(const instance_info_t* item, const objects_index_t& objects, int level, int max_level) {
+    assert(item != nullptr);
 
-    for (int index = 0, count = cls->static_fields_count(); index < count; ++index) {
-        auto& field = cls->static_field(index);
-        std::cout << field_ident << "static " << hprof.get_string(field.name_id()) << " : ";
-        print_field_value(field, hprof, level, max_level);
-        std::cout << std::endl;
+    if (item->get_class() != nullptr) {
+        std::cout << item->get_class()->name();
     }
-}
-
-void print_instance(const instance_info_t* item, const dump_data_t& hprof, int level, int max_level) {
-    if (item == nullptr) {
-        std::cout << "NULL";
-    }
-
-    std::cout << hprof.get_string(item->get_class()->name_id());
-    hprof::id_t super_id = item->get_class()->super_id();
-    if (super_id != 0) {
-        auto super_class = hprof.get_class_by_id(super_id);
-        std::cout << " : " << hprof.get_string(super_class->name_id());
+    ;
+    if (item->get_class()->super() != nullptr) {
+        std::cout << " : " << item->get_class()->super()->name();
     }
 
     if (level < max_level) {
         std::cout << " {" << std::endl;
 
-        // item->dump();
-
         std::string field_ident;
         field_ident.assign((level + 1) * 4, ' ');
 
-        auto& fields = item->fields();
-        for (int index = 0, count = fields.count(); index < count; ++index) {
-            auto field = fields[index];
-            std::cout << field_ident << hprof.get_string(field.name_id()) << " : ";
-            print_field_value(field, hprof, level, max_level);
+        for (auto& field : item->fields()) {
+            std::cout << field_ident << field.name() << " : ";
+            print_field_value(field, objects, level, max_level);
             std::cout << std::endl;
         }
 
-        print_static_fields(item->get_class().get(), hprof, level, max_level);
+        const class_info_t *cls = item->get_class();
+        while (cls != nullptr) { 
+            for (auto& field : cls->static_fields()) {
+                std::cout << field_ident << "static " << field.name() << " : ";
+                print_field_value(field, objects, level, max_level);
+                std::cout << std::endl;
+            }
+
+            cls = cls->super();
+        }
 
         for (int index = 0; index < level; ++index) {
                 std::cout  << "    ";
@@ -157,44 +153,42 @@ void print_instance(const instance_info_t* item, const dump_data_t& hprof, int l
     }
 }
 
-void print_primitive_array(const primitive_array_info_t* const array, const dump_data_t& hprof, int level) {
-    if (array == nullptr) {
-        std::cout <<  "null";
-        return;
-    }
-
-    print_type(array->value_type());
+void print_primitive_array(const primitives_array_info_t* const array, const objects_index_t& objects, int level) {
+    assert(array != nullptr);
+    print_type(array->item_type());
 
     std::cout << "(" << array->length() << ") = [";
-    for (int index = 0, length = array->length(); index < length; ++index) {
-        if (index) {
-            std::cout << ", ";
-        }
+    bool first = true;
 
-        switch (array->value_type()) {
-            case JVM_TYPE_BOOL:
-                std::cout << (array->item<jvm_bool_t>(index) ? "true" : "false");
+    for (auto& item : *array) {
+        if (!first) std::cout << ", ";
+        else first = false;
+
+
+        switch (array->item_type()) {
+            case jvm_type_t::JVM_TYPE_BOOL:
+                std::cout << (static_cast<jvm_bool_t>(item) ? "true" : "false");
                 break;
-            case JVM_TYPE_CHAR:
-                std::wcout << "'"<< (wchar_t) array->item<jvm_char_t>(index) << "'";
+            case jvm_type_t::JVM_TYPE_CHAR:
+                std::wcout << "'"<< (wchar_t) static_cast<jvm_char_t>(item) << "'";
                 break;
-            case JVM_TYPE_FLOAT:
-                std::cout << array->item<jvm_float_t>(index);
+            case jvm_type_t::JVM_TYPE_FLOAT:
+                std::cout << static_cast<jvm_float_t>(item);
                 break;
-            case JVM_TYPE_DOUBLE:
-                std::cout << array->item<jvm_double_t>(index);
+            case jvm_type_t::JVM_TYPE_DOUBLE:
+                std::cout << static_cast<jvm_double_t>(item);
                 break;
-            case JVM_TYPE_BYTE:
-                std::cout << (int) array->item<jvm_byte_t>(index);
+            case jvm_type_t::JVM_TYPE_BYTE:
+                std::cout << (int) static_cast<jvm_byte_t>(item);
                 break;
-            case JVM_TYPE_SHORT:
-                std::cout << array->item<jvm_short_t>(index);
+            case jvm_type_t::JVM_TYPE_SHORT:
+                std::cout << static_cast<jvm_short_t>(item);
                 break;
-            case JVM_TYPE_INT:
-                std::cout << array->item<jvm_int_t>(index);
+            case jvm_type_t::JVM_TYPE_INT:
+                std::cout << static_cast<jvm_int_t>(item);
                 break;
-            case JVM_TYPE_LONG:
-                std::cout << array->item<jvm_long_t>(index);
+            case jvm_type_t::JVM_TYPE_LONG:
+                std::cout << static_cast<jvm_long_t>(item);
                 break;
             default:
                 break;
@@ -203,33 +197,28 @@ void print_primitive_array(const primitive_array_info_t* const array, const dump
     std::cout << "]";
 }
 
-void print_object_array(const object_array_info_t* const array, const dump_data_t& hprof, int level, int max_level) {
-    if (array == nullptr) {
-        std::cout <<  "null";
-        return;
-    }
-
+void print_object_array(const objects_array_info_t* array, const objects_index_t& objects, int level, int max_level) {
+    assert(array != nullptr);
     std::cout << "object (" << array->length() << ") = [";
-    for (int index = 0, length = array->length(); index < length; ++index) {
-        if (index) {
-            std::cout << ", ";
-        }
+    bool first = true;
+    for (auto& id : *array) {
+        if (!first) std::cout << ", ";
+        else first = false;
 
-        auto object = hprof.get_object_by_id(array->item(index));
+        auto object = objects.find_object(id);
         if (object == nullptr) {
             std::cout << "null";
         }
-        print_object(object, hprof, level + 1, max_level);
+        print_object(object, objects, level + 1, max_level);
     }
     std::cout << "]";
 }
 
-void print_class(const class_info_t* const cls, const dump_data_t& hprof, int level, int max_level) {
-    std::cout << "class "<< hprof.get_string(cls->name_id());
-    hprof::id_t super_id = cls->super_id();
-    if (super_id != 0) {
-        auto super_class = hprof.get_class_by_id(super_id);
-        std::cout << " : " << hprof.get_string(super_class->name_id());
+void print_class(const class_info_t* cls, const objects_index_t& objects, int level, int max_level) {
+    std::cout << "class "<< cls->name();
+    const class_info_t* super = cls->super();
+    if (super != nullptr) {
+        std::cout << " : " << super->name();
     }
 
     if (level < max_level) {
@@ -238,14 +227,17 @@ void print_class(const class_info_t* const cls, const dump_data_t& hprof, int le
         std::string field_ident;
         field_ident.assign((level + 1) * 4, ' ');
 
-        for (int index = 0, count = cls->fields_count(); index < count; ++index) {
-            auto field = cls->field(index);
-            std::cout << field_ident << hprof.get_string(field.name_id()) << " : ";
+        for (auto& field : cls->fields()) {
+            std::cout << field_ident << field.name() << " : ";
             print_type(field.type());
             std::cout << std::endl;
         }
 
-        print_static_fields(cls, hprof, level, max_level);
+        for (auto& field : cls->static_fields()) {
+            std::cout << field_ident << "static " << field.name() << " : ";
+            print_field_value(field, objects, level, max_level);
+            std::cout << std::endl;
+        }
 
         for (int index = 0; index < level; ++index) {
                 std::cout  << "    ";
@@ -254,50 +246,36 @@ void print_class(const class_info_t* const cls, const dump_data_t& hprof, int le
     }
 }
 
-void print_object(const object_info_ptr_t& item, const dump_data_t& hprof, int max_level) {
-    print_object(item, hprof, 0, max_level);
+void print_object(const hprof::object_info_ptr_t& item, const hprof::objects_index_t& objects, int max_level) {
+    print_object(item, objects, 0, max_level);
     std::cout << std::endl;
 }
 
-void print_object(const object_info_ptr_t& item, const dump_data_t& hprof, int level, int max_level) {
+void print_object(const object_info_ptr_t& item, const objects_index_t& objects, int level, int max_level) {
     if (item == nullptr) {
         std::cout << "null";
         return;
     }
 
     switch (item->type()) {
+        case object_info_t::TYPE_STRING: {
+            std::cout << "\"" << dynamic_cast<string_info_t*>(item.get())->value() << "\"";
+            break;
+        }
         case object_info_t::TYPE_INSTANCE: {
-            const instance_info_t* instance = dynamic_cast<const instance_info_t* const>(item.get());
-            if (hprof.types_helper().is_string(*instance)) {
-                std::string result;
-                auto value_type = hprof.types_helper().get_string_value(*instance, result);
-
-                switch (value_type) {
-                    case types_helper_t::Null:
-                        std::cout << "null";
-                        break;
-                    case types_helper_t::Value:
-                        std::cout << "\"" << result << "\"";
-                        break;
-                    case types_helper_t::NotString:
-                    case types_helper_t::Invalid:
-                    default:
-                        std::cout << "Invalid string";
-                        break;
-                }
-                break;
-            }
-            print_instance(instance, hprof, level, max_level);
+            print_instance(dynamic_cast<const instance_info_t*>(item.get()), objects, level, max_level);
             break;
         }
         case object_info_t::TYPE_CLASS:
-            print_class(dynamic_cast<const class_info_t* const>(item.get()), hprof, level, max_level);
+            print_class(dynamic_cast<const class_info_t* const>(item.get()), objects, level, max_level);
             break;
         case object_info_t::TYPE_OBJECTS_ARRAY:
-            print_object_array(dynamic_cast<const object_array_info_t* const>(item.get()), hprof, level, max_level);
+            print_object_array(dynamic_cast<const objects_array_info_t*>(item.get()), objects, level, max_level);
             break;
         case object_info_t::TYPE_PRIMITIVES_ARRAY:
-            print_primitive_array(dynamic_cast<const primitive_array_info_t* const>(item.get()), hprof, level);
+            assert(item.get() != nullptr);
+            assert(dynamic_cast<const primitives_array_info_t*>(item.get()) != nullptr);
+            print_primitive_array(dynamic_cast<const primitives_array_info_t*>(item.get()), objects, level);
             break;
     }
 }

@@ -15,7 +15,7 @@
 ///
 #pragma once
 
-#include "hprof_data_reader_factory.h"
+#include "hprof.h"
 
 #include <memory>
 #include <string>
@@ -30,11 +30,11 @@ namespace hprof {
         bool open();
         bool is_open() const { return _stream.is_open(); }
         void close() { _stream.close(); }
-        std::unique_ptr<dump_data_t> read_dump() const;
+        std::unique_ptr<heap_profile_t> read_dump() const;
     private:
         std::string _file_name;
         std::string _file_magic;
         std::unique_ptr<data_reader_factory_t> _factory;
-        mutable hprof_istream _stream;
+        mutable hprof_istream_t _stream;
     };
 }

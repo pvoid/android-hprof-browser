@@ -82,6 +82,7 @@ namespace hprof {
         void set(const std::string& class_name);
         void set(const char* class_name);
         size_t match(const name_tokens& token) const;
+        bool operator==(const name_tokens& src) const { return _tokens == src._tokens; }
     private:
         static size_t match(const std::string& left, const std::string& right);
     private:

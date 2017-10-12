@@ -47,12 +47,20 @@ int main(int argc, char* argv[]) {
     auto hprof = file.read_dump();
     file.close();
 
-    hprof->analyze();
-
     auto spent_time = steady_clock::now() - start;
 
     std::cout << "Heap dump lodaded in " << duration_cast<seconds>(spent_time).count() << "s "
               << (duration_cast<milliseconds>(spent_time).count() % 1000) << "ms " << std::endl << std::endl;
+
+    if (hprof == nullptr) {
+        std::cout << "Error reading heap profile file" << std::endl;
+        return -1;
+    }
+
+    if (hprof->has_errors()) {
+        std::cout << hprof->error_message() << std::endl;
+        return -1;
+    }
 
     language_driver driver {};
     std::vector<object_info_ptr_t> result;
@@ -78,7 +86,7 @@ int main(int argc, char* argv[]) {
                     continue;
                 }
 
-                print_object(item, *hprof, 1);
+                print_object(item, *hprof, 3);
             }
         } else {
             std::cout << "Failed";
