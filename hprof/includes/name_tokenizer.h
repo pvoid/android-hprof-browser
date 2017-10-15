@@ -14,6 +14,7 @@
 /// limitations under the License.
 ///
 #pragma once
+
 #include <string>
 #include <cstring>
 #include <vector>
@@ -136,13 +137,13 @@ namespace hprof {
         return result;
     }
 
-    // TODO: Add more smart comparation inside
+    // TODO: Add more smart comparasion inside
     inline size_t name_tokens::match(const std::string& left, const std::string& right) {
         size_t result = std::numeric_limits<size_t>::max();
 
         if (right.length() <= left.length()) {
             if (std::equal(std::begin(right), std::end(right), std::begin(left),
-                           [] (auto& left, auto& right) -> bool { return std::toupper(left) == std::toupper(right); })) {
+                           [] (auto& left_char, auto& right_char) -> bool { return std::toupper(left_char) == std::toupper(right_char); })) {
                 result = 0;
             }
         }

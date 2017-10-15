@@ -131,7 +131,7 @@ namespace hprof {
             TYPE_INSTANCE = 0x001,
             TYPE_SUPER = 0x002,
             TYPE_CLASS_LOADER = 0x004,
-            TYPE_OWNERSHIP = 0x008,
+            TYPE_OWNERSHIP = 0x008
         } type;
     };
 
@@ -211,7 +211,7 @@ namespace hprof {
         };
 
     public:
-        virtual ~gc_root_t() {}
+        virtual ~gc_root_t();
         virtual root_type_t type() const = 0;
         virtual jvm_id_t object_id() const = 0;
         virtual const jni_global_info_t& jni_global_info() const = 0;
@@ -227,30 +227,17 @@ namespace hprof {
 
     class object_info_t {
     public:
-        enum object_type_t {
-            TYPE_CLASS,
-            TYPE_INSTANCE,
-            TYPE_OBJECTS_ARRAY,
-            TYPE_PRIMITIVES_ARRAY,
-            TYPE_STRING
-        };
-    public:
-        explicit object_info_t() {}
-        virtual ~object_info_t() {}
-
+        virtual ~object_info_t();
         virtual jvm_id_t id() const = 0;
-        virtual size_t id_size() const = 0;
-        virtual object_type_t type() const = 0;
+        virtual u_int8_t id_size() const = 0;
         virtual int32_t heap_type() const = 0;
         virtual int32_t has_link_to(jvm_id_t id) const = 0;
         virtual const std::vector<std::unique_ptr<gc_root_t>>& gc_roots() const = 0;
     };
 
-    using object_info_ptr_t = std::shared_ptr<object_info_t>;
-
     class field_spec_t {
     public:
-        virtual ~field_spec_t() {}
+        virtual ~field_spec_t();
         virtual jvm_id_t name_id() const = 0;
         virtual const std::string& name() const = 0;
         virtual jvm_type_t type() const = 0;
@@ -330,10 +317,10 @@ namespace hprof {
     public:
         using iterator = iterator_container_t<field_spec_t>;
     public:
-        virtual ~fields_spec_t() {}
+        virtual ~fields_spec_t();
         virtual size_t count() const = 0;
         virtual fields_spec_t::iterator operator[](size_t index) const = 0;
-        virtual fields_spec_t::iterator find(std::string name) const = 0;
+        virtual fields_spec_t::iterator find(const std::string& name) const = 0;
         virtual fields_spec_t::iterator begin() const = 0;
         virtual fields_spec_t::iterator end() const = 0;
         virtual size_t data_size() const = 0;
@@ -341,7 +328,7 @@ namespace hprof {
 
     class field_value_t {
     public:
-        virtual ~field_value_t() {}
+        virtual ~field_value_t();
         virtual const std::string& name() const = 0;
         virtual jvm_type_t type() const = 0;
         virtual size_t offset() const = 0;
@@ -360,7 +347,7 @@ namespace hprof {
     public:
         using iterator = iterator_container_t<field_value_t>;
     public:
-        virtual ~fields_values_t() {}
+        virtual ~fields_values_t();
         virtual size_t count() const = 0;
         virtual fields_values_t::iterator operator[](size_t index) const = 0;
         virtual fields_values_t::iterator find(std::string name) const = 0;
@@ -380,12 +367,13 @@ namespace hprof {
 
     class class_info_t : public virtual object_info_t {
     public:
-        virtual ~class_info_t() {}
-
+        virtual ~class_info_t();
         virtual jvm_id_t super_id() const = 0;
         virtual const class_info_t* super() const = 0;
         virtual jvm_id_t name_id() const = 0;
         virtual jvm_id_t class_loader_id() const = 0;
+        virtual int32_t sequence_number() const = 0;
+        virtual int32_t stack_trace_id() const = 0;
         virtual const std::string& name() const = 0;
         virtual size_t name_matches(const name_tokens& name) const = 0;
         virtual size_t instance_size() const = 0;
@@ -393,33 +381,26 @@ namespace hprof {
         virtual const fields_values_t& static_fields() const = 0;
     };
 
-    using class_info_ptr_t = std::shared_ptr<class_info_t>;
-
     class instance_info_t : public virtual object_info_t {
     public:
-        virtual ~instance_info_t() {}
-
+        virtual ~instance_info_t();
         virtual jvm_id_t class_id() const = 0;
         virtual int32_t stack_trace_id() const = 0;
-        virtual class_info_t* get_class() const = 0;
+        virtual const class_info_t* get_class() const = 0;
         virtual const fields_values_t& fields() const = 0;
     };
 
-    using instance_info_ptr_t = std::shared_ptr<instance_info_t>();
-
     class string_info_t : public virtual instance_info_t {
     public:
-        virtual ~string_info_t() {}
+        virtual ~string_info_t();
         virtual const std::string& value() const = 0;
     };
-
-    using string_info_ptr_t = std::shared_ptr<string_info_t>();
 
     class primitives_array_info_t : public virtual object_info_t {
     public:
         class array_item_t {
         public:
-            virtual ~array_item_t() {}
+            virtual ~array_item_t();
             virtual jvm_type_t type() const = 0;
             virtual size_t offset() const = 0;
             virtual operator jvm_bool_t() const = 0;
@@ -434,7 +415,7 @@ namespace hprof {
 
         using iterator = iterator_container_t<array_item_t>;
     public:
-        virtual ~primitives_array_info_t() {}
+        virtual ~primitives_array_info_t();
 
         virtual jvm_type_t item_type() const = 0;
         virtual size_t length() const = 0;
@@ -447,7 +428,7 @@ namespace hprof {
     public:
         using iterator = iterator_container_t<jvm_id_t>;
     public:
-        virtual ~objects_array_info_t() {}
+        virtual ~objects_array_info_t();
 
         virtual jvm_id_t class_id() const = 0;
         virtual size_t length() const = 0;
@@ -455,4 +436,25 @@ namespace hprof {
         virtual iterator end() const = 0;
         virtual iterator operator[](size_t index) const = 0;
     };
+
+    class heap_item_t {
+    public:
+        enum type_t {
+            Class,
+            Object,
+            String,
+            PrimitivesArray,
+            ObjectsArray
+        };
+    public:
+        virtual ~heap_item_t();
+        virtual type_t type() const = 0;
+        virtual operator const class_info_t*() const = 0;
+        virtual operator const instance_info_t*() const = 0;
+        virtual operator const string_info_t*() const = 0;
+        virtual operator const primitives_array_info_t*() const = 0;
+        virtual operator const objects_array_info_t*() const = 0;
+    };
+
+    using heap_item_ptr_t = std::shared_ptr<heap_item_t>;
 }

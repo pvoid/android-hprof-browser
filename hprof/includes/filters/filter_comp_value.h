@@ -30,7 +30,7 @@ namespace hprof {
         union {
             bool bool_value;
             int64_t int_value;
-            int64_t double_value;
+            double double_value;
             char* text_value;
         };
 
@@ -135,7 +135,7 @@ namespace hprof {
             case filter_comp_value_t::TYPE_INT:
                 return left.int_value == value;
             case filter_comp_value_t::TYPE_DOUBLE:
-                return left.double_value == value;
+                return static_cast<int64_t>(left.double_value) == value;
         }
     }
 
@@ -171,7 +171,7 @@ namespace hprof {
             case filter_comp_value_t::TYPE_INT:
                 return left.int_value != value;
             case filter_comp_value_t::TYPE_DOUBLE:
-                return left.double_value != value;
+                return static_cast<int64_t>(left.double_value) != value;
         }
     }
 

@@ -13,22 +13,32 @@
 ///  See the License for the specific language governing permissions and
 ///  limitations under the License.
 ///
-#pragma once
-
 #include "types.h"
 
-namespace hprof {
-    class objects_index_t {
-    public:
-        virtual ~objects_index_t() {}
-        // FIXME: Probably it is possible to find more convinient result type
-        virtual heap_item_ptr_t find_object(jvm_id_t id) const = 0;
-    };
+using namespace hprof;
 
-    class classes_index_t {
-    public:
-        virtual ~classes_index_t() {}
-        // FIXME: Probably it is possible to find more convinient result type
-        virtual heap_item_ptr_t find_class(jvm_id_t id) const = 0;
-    };
-}
+gc_root_t::~gc_root_t() {}
+
+object_info_t::~object_info_t() {}
+
+field_spec_t::~field_spec_t() {}
+
+fields_spec_t::~fields_spec_t() {}
+
+field_value_t::~field_value_t() {}
+
+fields_values_t::~fields_values_t() {}
+
+class_info_t::~class_info_t() {}
+
+instance_info_t::~instance_info_t() {}
+
+string_info_t::~string_info_t() {}
+
+primitives_array_info_t::~primitives_array_info_t() {}
+
+primitives_array_info_t::array_item_t::~array_item_t() {}
+
+objects_array_info_t::~objects_array_info_t() {}
+
+heap_item_t::~heap_item_t() {}

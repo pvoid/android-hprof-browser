@@ -21,17 +21,21 @@
 namespace hprof {
     class objects_array_info_impl_t;
 
-    using objects_array_info_impl_ptr_t = std::shared_ptr<objects_array_info_impl_t>;
+    class objects_array_info_impl_t_deleter {
+    public:
+        void operator()(objects_array_info_impl_t* ptr) const;
+    };
+
+    using objects_array_info_impl_ptr_t = std::unique_ptr<objects_array_info_impl_t, objects_array_info_impl_t_deleter>;
 
     class objects_array_info_impl_t : public virtual objects_array_info_t, public object_info_impl_t {
     private:
         class items_iterator {
         public:
-            items_iterator(size_t id_size, const u_int8_t* data) : _id_size(id_size), _data(data) {
+            items_iterator(u_int8_t id_size, const u_int8_t* data) : _id_size(id_size), _data(data) {
                 fetch_current();
             }
-            virtual ~items_iterator() {}
-            
+
             bool operator!=(const items_iterator& src) const { return _data != src._data; }
             bool operator==(const items_iterator& src) const { return _data == src._data; }
 
@@ -59,18 +63,15 @@ namespace hprof {
         private:
             size_t _id_size;
             mutable const u_int8_t* _data;
-            // mutable bool _fetch_value;
             mutable jvm_id_t _current;
         };
     public:
         objects_array_info_impl_t(const objects_array_info_impl_t&) = delete;
         objects_array_info_impl_t(objects_array_info_impl_t&&) = default;
-        virtual ~objects_array_info_impl_t() {}
+        virtual ~objects_array_info_impl_t();
 
         objects_array_info_impl_t& operator=(const objects_array_info_impl_t&) = delete;
         objects_array_info_impl_t& operator=(objects_array_info_impl_t&&) = default;
-
-        virtual object_type_t type() const override { return TYPE_OBJECTS_ARRAY; }
 
         virtual int32_t has_link_to(jvm_id_t id) const override {
             int32_t result = 0;
@@ -92,7 +93,7 @@ namespace hprof {
         virtual size_t length() const override { return _length; }
         
         virtual iterator begin() const override { 
-            return objects_array_info_t::iterator { items_iterator { id_size(), static_cast<const u_int8_t*>(_data) } };
+            return objects_array_info_t::iterator { items_iterator { id_size(), pointer_for_item(0) } };
         }
         
         virtual iterator end() const override {
@@ -106,17 +107,15 @@ namespace hprof {
         u_int8_t* data() { return _data; }
     private:
         const u_int8_t* pointer_for_item(size_t index) const {
-            return static_cast<const u_int8_t*>(_data) + id_size() * index;
+            return static_cast<const u_int8_t*>(_data) + (static_cast<size_t>(id_size()) * index);
         }
     public:
-        static objects_array_info_impl_ptr_t create(size_t id_size, jvm_id_t id, jvm_id_t class_id, size_t length, size_t data_size) {
+        static objects_array_info_impl_ptr_t create(u_int8_t id_size, jvm_id_t id, jvm_id_t class_id, size_t length, size_t data_size) {
             auto mem = new (std::nothrow) u_int8_t[sizeof(objects_array_info_impl_t) + data_size];
-            objects_array_info_impl_ptr_t result { new (mem) objects_array_info_impl_t(id_size, id, class_id, length), 
-                [] (auto item) { item->~objects_array_info_impl_t(); delete[] (u_int8_t*)item; }};
-            return result;
+            return objects_array_info_impl_ptr_t { new (mem) objects_array_info_impl_t(id_size, id, class_id, length) };
         }
     private:
-        objects_array_info_impl_t(size_t id_size, jvm_id_t id, jvm_id_t class_id, size_t length) :
+        objects_array_info_impl_t(u_int8_t id_size, jvm_id_t id, jvm_id_t class_id, size_t length) :
             object_info_impl_t(id_size, id), _class_id(class_id), _length(length), _data(reinterpret_cast<u_int8_t *>(this) + sizeof(objects_array_info_impl_t)) {}
     private:
         jvm_id_t _class_id;

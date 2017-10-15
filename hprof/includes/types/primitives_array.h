@@ -24,7 +24,12 @@
 namespace hprof {
     class primitives_array_info_impl_t;
 
-    using primitives_array_info_impl_ptr_t = std::shared_ptr<primitives_array_info_impl_t>;
+    class primitives_array_info_impl_t_deleter {
+    public:
+        void operator()(primitives_array_info_impl_t* ptr) const;
+    };
+
+    using primitives_array_info_impl_ptr_t = std::unique_ptr<primitives_array_info_impl_t, primitives_array_info_impl_t_deleter>;
 
     class primitives_array_info_impl_t : public virtual primitives_array_info_t, public object_info_impl_t {
     private:
@@ -33,7 +38,6 @@ namespace hprof {
             array_item_impl_t() : value_reader_t(nullptr, 0), _type(jvm_type_t::JVM_TYPE_UNKNOWN), _offset(0) {}
             array_item_impl_t(const u_int8_t* data, size_t offset, size_t item_size, jvm_type_t type) : 
                 value_reader_t(data + offset, item_size), _type(type), _offset(offset) {}
-            virtual ~array_item_impl_t() {}
             virtual jvm_type_t type() const override { return _type; }
             virtual size_t offset() const override { return _offset; }
             virtual operator jvm_bool_t() const override { return value_reader_t::operator jvm_bool_t(); }
@@ -76,15 +80,12 @@ namespace hprof {
     public:
         primitives_array_info_impl_t(const primitives_array_info_impl_t&) = delete;
         primitives_array_info_impl_t(primitives_array_info_impl_t&&) = default;
-        virtual ~primitives_array_info_impl_t() {}
+        virtual ~primitives_array_info_impl_t();
 
         primitives_array_info_impl_t& operator=(const primitives_array_info_impl_t&) = delete;
         primitives_array_info_impl_t& operator=(primitives_array_info_impl_t&&) = default;
 
-        virtual object_type_t type() const override { return TYPE_PRIMITIVES_ARRAY; }
-        virtual int32_t has_link_to(jvm_id_t id) const override {
-            return 0;
-        }
+        virtual int32_t has_link_to(jvm_id_t) const override { return 0; }
 
         virtual size_t length() const override { return _length; }
         virtual jvm_type_t item_type() const override { return _type; }
@@ -101,19 +102,18 @@ namespace hprof {
 
         u_int8_t* data() { return _data; }
     public:
-        static primitives_array_info_impl_ptr_t create(size_t id_size, jvm_id_t id, jvm_type_t type, size_t length, size_t data_size) {
+        static primitives_array_info_impl_ptr_t create(u_int8_t id_size, jvm_id_t id, jvm_type_t type, size_t length, size_t data_size) {
             auto mem = new (std::nothrow) u_int8_t[sizeof(primitives_array_info_impl_t) + data_size];
-            primitives_array_info_impl_ptr_t result { new (mem) primitives_array_info_impl_t(id_size, id, type, length), 
-                [] (auto item) { item->~primitives_array_info_impl_t(); delete[] (u_int8_t*)item; }};
-            return result;
+            return primitives_array_info_impl_ptr_t { new (mem) primitives_array_info_impl_t(id_size, id, type, length) };
         }
     private:
-        primitives_array_info_impl_t(size_t id_size, jvm_id_t id, jvm_type_t type, size_t length) : 
-        object_info_impl_t(id_size, id), _type(type), _length(length), _data(reinterpret_cast<u_int8_t*>(this) + sizeof(primitives_array_info_impl_t)) {}
+        primitives_array_info_impl_t(u_int8_t id_size, jvm_id_t id, jvm_type_t type, size_t length) : 
+        object_info_impl_t(id_size, id), _data(reinterpret_cast<u_int8_t*>(this) + sizeof(primitives_array_info_impl_t)), 
+        _length(length), _type(type) {}
     
     private:
-        jvm_type_t _type;
-        size_t _length;
         u_int8_t* _data;
+        size_t _length;
+        jvm_type_t _type;
     };
 }

@@ -23,7 +23,7 @@
 
 using namespace hprof;
 
-void print_object(const object_info_ptr_t& item, const objects_index_t& objects, int level, int max_level);
+void print_object(const heap_item_ptr_t& item, const objects_index_t& objects, int level, int max_level);
 
 inline void print_type(jvm_type_t type) {
     switch(type) {
@@ -60,7 +60,7 @@ inline void print_type(jvm_type_t type) {
     }
 }
 
-void print_field_value(const field_value_t& field, const objects_index_t& objects, int level, int max_level) {
+static void print_field_value(const field_value_t& field, const objects_index_t& objects, int level, int max_level) {
     print_type(field.type());
 
     std::cout << " = ";
@@ -99,7 +99,7 @@ void print_field_value(const field_value_t& field, const objects_index_t& object
             if (id == 0) {
                 std::cout << "null";
             } else {
-                object_info_ptr_t obj = objects.find_object(id);
+                auto obj = objects.find_object(id);
                 if (obj == nullptr) {
                     std::cout << "<not found>";
                 } else {
@@ -112,7 +112,7 @@ void print_field_value(const field_value_t& field, const objects_index_t& object
     }
 }
 
-void print_instance(const instance_info_t* item, const objects_index_t& objects, int level, int max_level) {
+static void print_instance(const instance_info_t* item, const objects_index_t& objects, int level, int max_level) {
     assert(item != nullptr);
 
     if (item->get_class() != nullptr) {
@@ -153,7 +153,7 @@ void print_instance(const instance_info_t* item, const objects_index_t& objects,
     }
 }
 
-void print_primitive_array(const primitives_array_info_t* const array, const objects_index_t& objects, int level) {
+static void print_primitive_array(const primitives_array_info_t* array, const objects_index_t&, int) {
     assert(array != nullptr);
     print_type(array->item_type());
 
@@ -246,36 +246,34 @@ void print_class(const class_info_t* cls, const objects_index_t& objects, int le
     }
 }
 
-void print_object(const hprof::object_info_ptr_t& item, const hprof::objects_index_t& objects, int max_level) {
+void print_object(const heap_item_ptr_t& item, const objects_index_t& objects, int max_level) {
     print_object(item, objects, 0, max_level);
     std::cout << std::endl;
 }
 
-void print_object(const object_info_ptr_t& item, const objects_index_t& objects, int level, int max_level) {
+void print_object(const heap_item_ptr_t& item, const objects_index_t& objects, int level, int max_level) {
     if (item == nullptr) {
         std::cout << "null";
         return;
     }
 
     switch (item->type()) {
-        case object_info_t::TYPE_STRING: {
-            std::cout << "\"" << dynamic_cast<string_info_t*>(item.get())->value() << "\"";
+        case heap_item_t::String: {
+            std::cout << "\"" << static_cast<const string_info_t*>(*item)->value() << "\"";
             break;
         }
-        case object_info_t::TYPE_INSTANCE: {
-            print_instance(dynamic_cast<const instance_info_t*>(item.get()), objects, level, max_level);
+        case heap_item_t::Object: {
+            print_instance(static_cast<const instance_info_t*>(*item), objects, level, max_level);
             break;
         }
-        case object_info_t::TYPE_CLASS:
-            print_class(dynamic_cast<const class_info_t* const>(item.get()), objects, level, max_level);
+        case heap_item_t::Class:
+            print_class(static_cast<const class_info_t*>(*item), objects, level, max_level);
             break;
-        case object_info_t::TYPE_OBJECTS_ARRAY:
-            print_object_array(dynamic_cast<const objects_array_info_t*>(item.get()), objects, level, max_level);
+        case heap_item_t::ObjectsArray:
+            print_object_array(static_cast<const objects_array_info_t*>(*item), objects, level, max_level);
             break;
-        case object_info_t::TYPE_PRIMITIVES_ARRAY:
-            assert(item.get() != nullptr);
-            assert(dynamic_cast<const primitives_array_info_t*>(item.get()) != nullptr);
-            print_primitive_array(dynamic_cast<const primitives_array_info_t*>(item.get()), objects, level);
+        case heap_item_t::PrimitivesArray:
+            print_primitive_array(static_cast<const primitives_array_info_t*>(*item), objects, level);
             break;
     }
 }

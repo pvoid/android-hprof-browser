@@ -31,8 +31,12 @@ TEST(filter_classname_t, When_ClassAndDistanceIsZero_Expect_Match) {
     mock_objects_index_t objects;
     EXPECT_CALL(cls, name_matches(name_tokens("com.android"))).Times(1).WillOnce(Return(0));
 
+    auto item = std::make_shared<mock_heap_item_t>();
+    EXPECT_CALL(*item, type()).Times(1).WillOnce(Return(heap_item_t::Class));
+    EXPECT_CALL(*item, as_class()).Times(1).WillOnce(Return(&cls));
+
     filter_classname_t filter { "com.android" };
-    ASSERT_EQ(filter_t::Match, filter(&cls, objects));
+    ASSERT_EQ(filter_t::Match, filter(item, objects));
 }
 
 TEST(filter_classname_t, When_ClassAndDistanceIsNotZero_Expect_NoMatch) {
@@ -41,24 +45,32 @@ TEST(filter_classname_t, When_ClassAndDistanceIsNotZero_Expect_NoMatch) {
     mock_objects_index_t objects;
     EXPECT_CALL(cls, name_matches(name_tokens("com.android"))).Times(1).WillOnce(Return(10));
 
+    auto item = std::make_shared<mock_heap_item_t>();
+    EXPECT_CALL(*item, type()).Times(1).WillOnce(Return(heap_item_t::Class));
+    EXPECT_CALL(*item, as_class()).Times(1).WillOnce(Return(&cls));
+
     filter_classname_t filter { "com.android" };
-    ASSERT_EQ(filter_t::NoMatch, filter(&cls, objects));
+    ASSERT_EQ(filter_t::NoMatch, filter(item, objects));
 }
 
 TEST(filter_classname_t, When_PrimitiveArray_Expect_NoMatch) {
-    mock_primitives_array_t array {};
     mock_objects_index_t objects;
 
+    auto item = std::make_shared<mock_heap_item_t>();
+    EXPECT_CALL(*item, type()).Times(1).WillOnce(Return(heap_item_t::PrimitivesArray));
+
     filter_classname_t filter { "com.android" };
-    ASSERT_EQ(filter_t::NoMatch, filter(&array, objects));
+    ASSERT_EQ(filter_t::NoMatch, filter(item, objects));
 }
 
 TEST(filter_classname_t, When_ObjectsArray_Expect_NoMatch) {
-    mock_objects_array_t array {};
     mock_objects_index_t objects;
 
+    auto item = std::make_shared<mock_heap_item_t>();
+    EXPECT_CALL(*item, type()).Times(1).WillOnce(Return(heap_item_t::ObjectsArray));
+
     filter_classname_t filter { "com.android" };
-    ASSERT_EQ(filter_t::NoMatch, filter(&array, objects));
+    ASSERT_EQ(filter_t::NoMatch, filter(item, objects));
 }
 
 TEST(filter_classname_t, When_InstanceAndDistanceIsZero_Expect_Match) {
@@ -70,8 +82,12 @@ TEST(filter_classname_t, When_InstanceAndDistanceIsZero_Expect_Match) {
     EXPECT_CALL(instance, get_class()).Times(1).WillOnce(Return(&cls));
     EXPECT_CALL(cls, name_matches(name_tokens("com.android"))).Times(1).WillOnce(Return(0));
 
+    auto item = std::make_shared<mock_heap_item_t>();
+    EXPECT_CALL(*item, type()).Times(1).WillOnce(Return(heap_item_t::Object));
+    EXPECT_CALL(*item, as_instance()).Times(1).WillOnce(Return(&instance));
+
     filter_classname_t filter { "com.android" };
-    ASSERT_EQ(filter_t::Match, filter(&instance, objects));
+    ASSERT_EQ(filter_t::Match, filter(item, objects));
 }
 
 TEST(filter_classname_t, When_InstanceAndDistanceIsNotZero_Expect_Match) {
@@ -83,22 +99,30 @@ TEST(filter_classname_t, When_InstanceAndDistanceIsNotZero_Expect_Match) {
     EXPECT_CALL(instance, get_class()).Times(1).WillOnce(Return(&cls));
     EXPECT_CALL(cls, name_matches(name_tokens("com.android"))).Times(1).WillOnce(Return(10));
 
+    auto item = std::make_shared<mock_heap_item_t>();
+    EXPECT_CALL(*item, type()).Times(1).WillOnce(Return(heap_item_t::Object));
+    EXPECT_CALL(*item, as_instance()).Times(1).WillOnce(Return(&instance));
+
     filter_classname_t filter { "com.android" };
-    ASSERT_EQ(filter_t::NoMatch, filter(&instance, objects));
+    ASSERT_EQ(filter_t::NoMatch, filter(item, objects));
 }
 
 TEST(filter_classname_t, When_NotStringClassName_Expect_NoMatch) {
-    mock_string_info_t str;
     mock_objects_index_t objects;
 
+    auto item = std::make_shared<mock_heap_item_t>();
+    EXPECT_CALL(*item, type()).Times(1).WillOnce(Return(heap_item_t::String));
+
     filter_classname_t filter { "com.android" };
-    ASSERT_EQ(filter_t::NoMatch, filter(&str, objects));
+    ASSERT_EQ(filter_t::NoMatch, filter(item, objects));
 }
 
 TEST(filter_classname_t, When_StringClassName_Expect_Match) {
-    mock_string_info_t str;
     mock_objects_index_t objects;
 
+    auto item = std::make_shared<mock_heap_item_t>();
+    EXPECT_CALL(*item, type()).Times(1).WillOnce(Return(heap_item_t::String));
+
     filter_classname_t filter { "java.lang.String" };
-    ASSERT_EQ(filter_t::Match, filter(&str, objects));
+    ASSERT_EQ(filter_t::Match, filter(item, objects));
 }

@@ -16,13 +16,18 @@
 cmake_minimum_required(VERSION 3.5)
 project(hprof-library C CXX)
 
-file(GLOB SOURCE_FILES ${PROJECT_SOURCE_DIR}/src/*.cxx)
-
 set(SOURCE_FILES 
-    ${PROJECT_SOURCE_DIR}/src/hprof_file.cxx
-    ${PROJECT_SOURCE_DIR}/src/reader/data_reader_v103.cxx
-    ${PROJECT_SOURCE_DIR}/src/data_reader_factory.cxx
+    ${PROJECT_SOURCE_DIR}/src/types.cxx
+    ${PROJECT_SOURCE_DIR}/src/types/class.cxx
+    ${PROJECT_SOURCE_DIR}/src/types/gc_root.cxx
+    ${PROJECT_SOURCE_DIR}/src/types/instance.cxx
     ${PROJECT_SOURCE_DIR}/src/types/string_instance.cxx
+    ${PROJECT_SOURCE_DIR}/src/types/objects_array.cxx
+    ${PROJECT_SOURCE_DIR}/src/types/primitives_array.cxx
+    ${PROJECT_SOURCE_DIR}/src/reader/data_reader_v103.cxx
+    ${PROJECT_SOURCE_DIR}/src/hprof_file.cxx
+    ${PROJECT_SOURCE_DIR}/src/data_reader_factory.cxx
+    ${PROJECT_SOURCE_DIR}/src/heap_profile.cxx
 )
 set(INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/includes/)
 

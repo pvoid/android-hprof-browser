@@ -25,7 +25,6 @@ public:
     tested_object_info_impl_t (u_int8_t id_size, jvm_id_t id) : object_info_impl_t(id_size, id) {}
     virtual ~tested_object_info_impl_t() {}
 
-    virtual object_type_t type() const override { return TYPE_CLASS; }
     virtual int32_t has_link_to(jvm_id_t) const override { return false; }
 };
 

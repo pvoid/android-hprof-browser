@@ -27,6 +27,7 @@ namespace hprof {
         }
         virtual ~object_info_impl_t() {}
 
+        // FIXME: it's wrong, you shouldn't allow copy this object
         object_info_impl_t& operator=(const object_info_impl_t& src) {
             _object_id = src._object_id;
             _id_size = src._id_size;
@@ -36,7 +37,7 @@ namespace hprof {
             return *this;
         }
 
-        virtual size_t id_size() const override { return _id_size; }
+        virtual u_int8_t id_size() const override { return _id_size; }
         virtual jvm_id_t id() const override { return _object_id; }
 
         virtual int32_t heap_type() const override { return _heap_type; }
@@ -50,6 +51,4 @@ namespace hprof {
         int32_t _heap_type;
         std::vector<std::unique_ptr<gc_root_t>> _roots;
     };
-
-    using object_info_impl_ptr_t = std::shared_ptr<object_info_impl_t>;
 }

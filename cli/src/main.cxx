@@ -63,7 +63,7 @@ int main(int argc, char* argv[]) {
     }
 
     language_driver driver {};
-    std::vector<object_info_ptr_t> result;
+    std::vector<heap_item_ptr_t> result;
     do {
         std::cout << ">> ";
         std::string query_text;
@@ -82,11 +82,7 @@ int main(int argc, char* argv[]) {
             std::cout << "Results: " << result.size() << std::endl << std::endl;
 
             for (auto& item : result) {
-                if (item->type() != object_info_t::TYPE_INSTANCE) {
-                    continue;
-                }
-
-                print_object(item, *hprof, 3);
+                print_object(item, hprof->objects_index(), 3);
             }
         } else {
             std::cout << "Failed";

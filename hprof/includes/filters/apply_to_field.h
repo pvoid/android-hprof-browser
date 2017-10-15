@@ -31,12 +31,8 @@ namespace hprof {
                     return false;
                 }
 
-                object_info_ptr_t value = objects.find_object(static_cast<jvm_id_t>(field));
-                if (value == nullptr) {
-                    return false;
-                }
-
-                return (*_filter)(value.get(), objects) == Match;
+                heap_item_ptr_t value = objects.find_object(static_cast<jvm_id_t>(field));
+                return (*_filter)(value, objects) == Match;
             }
         private:
             std::unique_ptr<filter_t> _filter;

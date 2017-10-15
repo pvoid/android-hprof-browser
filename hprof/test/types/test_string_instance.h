@@ -22,12 +22,6 @@
 
 using namespace hprof;
 
-TEST(string_info_impl_t, When_Type_Expect_String) {
-    mock_objects_index_t objects;
-    auto text = string_info_impl_t::create(*instance_info_impl_t::create(4, 0xc0f060, 0), objects);
-    ASSERT_EQ(object_info_t::TYPE_STRING, text->type());
-}
-
 TEST(string_info_impl_t, When_DefaultValue_Expect_EmptyValue) {
     mock_objects_index_t objects;
     auto text = string_info_impl_t::create(*instance_info_impl_t::create(4, 0xc0f060, 0), objects);

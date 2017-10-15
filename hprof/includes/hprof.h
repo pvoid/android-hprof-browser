@@ -24,6 +24,8 @@
 #include "filters/logical.h"
 #include "filters/comparation.h"
 
+#include <chrono>
+
 namespace hprof {
 
     struct query_t {
@@ -37,17 +39,19 @@ namespace hprof {
         std::unique_ptr<filter_t> filter;
     };
 
-    class heap_profile_t : public objects_index_t {
+    class heap_profile_t {
     public:
-        ~heap_profile_t() {}
-        
+        virtual ~heap_profile_t() {}
         virtual bool has_errors() const = 0;
         virtual const std::string& error_message() const = 0;
-        virtual bool query(const query_t& query, std::vector<object_info_ptr_t>& result) const = 0;
+        virtual bool query(const query_t& query, std::vector<heap_item_ptr_t>& result) const = 0;
+        virtual const objects_index_t& objects_index() const = 0;
+        virtual const classes_index_t& classes_index() const = 0;
     };
 
     class data_reader_t {
     public:
+        virtual ~data_reader_t() {}
         virtual std::unique_ptr<heap_profile_t> build(hprof_istream_t&) const = 0;
     };
 

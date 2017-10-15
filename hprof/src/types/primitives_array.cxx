@@ -13,22 +13,13 @@
 ///  See the License for the specific language governing permissions and
 ///  limitations under the License.
 ///
-#pragma once
+#include "types/primitives_array.h"
 
-#include "types.h"
+using namespace hprof;
 
-namespace hprof {
-    class objects_index_t {
-    public:
-        virtual ~objects_index_t() {}
-        // FIXME: Probably it is possible to find more convinient result type
-        virtual heap_item_ptr_t find_object(jvm_id_t id) const = 0;
-    };
-
-    class classes_index_t {
-    public:
-        virtual ~classes_index_t() {}
-        // FIXME: Probably it is possible to find more convinient result type
-        virtual heap_item_ptr_t find_class(jvm_id_t id) const = 0;
-    };
+void primitives_array_info_impl_t_deleter::operator()(primitives_array_info_impl_t* ptr) const {
+    ptr->~primitives_array_info_impl_t();
+    delete[] reinterpret_cast<u_int8_t*>(ptr);
 }
+
+primitives_array_info_impl_t::~primitives_array_info_impl_t() {}

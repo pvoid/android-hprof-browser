@@ -70,17 +70,16 @@ namespace hprof {
                         return false;
                     }
 
-                    object_info_ptr_t value = objects.find_object(id);
+                    auto value = objects.find_object(id);
                     if (value == nullptr) {
                         return _value.text_value == nullptr;
                     }
 
-                    if (value->type() != object_info_t::TYPE_STRING) {
+                    if (value->type() != heap_item_t::String) {
                         return false;
                     }
-
-                    string_info_t* str = dynamic_cast<string_info_t*>(value.get());
-
+                    
+                    const string_info_t* str = static_cast<const string_info_t*>(*value);
                     return str->value() == _value.text_value;
                 }
             }
@@ -127,17 +126,16 @@ namespace hprof {
                         return false;
                     }
 
-                    object_info_ptr_t value = objects.find_object(id);
+                    auto value = objects.find_object(id);
                     if (value == nullptr) {
                         return _value.text_value != nullptr;
                     }
 
-                    if (value->type() != object_info_t::TYPE_STRING) {
+                    if (value->type() != heap_item_t::String) {
                         return false;
                     }
 
-                    string_info_t* str = dynamic_cast<string_info_t*>(value.get());
-
+                    const string_info_t* str = static_cast<const string_info_t*>(*value);
                     return str->value() != _value.text_value;
                 }
             }

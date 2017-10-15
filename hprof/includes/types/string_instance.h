@@ -23,9 +23,14 @@
 #include <locale>
 
 namespace hprof {
-
     class string_info_impl_t;
-    using string_info_impl_ptr_t = std::shared_ptr<string_info_impl_t>;
+
+    class string_info_impl_t_deleter {
+    public:
+        void operator()(string_info_impl_t* ptr) const;
+    };
+
+    using string_info_impl_ptr_t = std::unique_ptr<string_info_impl_t, string_info_impl_t_deleter>;
 
     class string_info_impl_t : public virtual string_info_t, public instance_info_impl_t {
     public:
@@ -34,12 +39,10 @@ namespace hprof {
         string_info_impl_t(const string_info_impl_t&) = delete;
         string_info_impl_t(string_info_impl_t&&) = default;
         
-        virtual ~string_info_impl_t() {}
+        virtual ~string_info_impl_t();
 
         string_info_impl_t& operator=(const string_info_impl_t&) = delete;
         string_info_impl_t& operator=(string_info_impl_t&&) = default;
-
-        virtual object_type_t type() const override { return TYPE_STRING; }
 
         virtual const std::string& value() const override { return _value; }
     public:
@@ -47,33 +50,10 @@ namespace hprof {
             auto mem = new (std::nothrow) u_int8_t[instance.data_size() + sizeof(string_info_impl_t)];
             // copy old data
             std::memcpy(mem + sizeof(string_info_impl_t), instance.data(), instance.data_size());
-            string_info_impl_ptr_t result { new (mem) string_info_impl_t(instance, objects), 
-                [] (auto item) { item->~string_info_impl_t(); delete[] (u_int8_t*)item; }};
-            return result;
+            return string_info_impl_ptr_t { new (mem) string_info_impl_t(instance, objects) };
         }
     private:
-        string_info_impl_t(const instance_info_impl_t& obj, const objects_index_t& objects) : 
-            instance_info_impl_t(obj, reinterpret_cast<u_int8_t*>(this) + sizeof(string_info_impl_t)) {
-            auto field = instance_info_impl_t::fields().find("value");
-            if (field == instance_info_impl_t::fields().end() || field->type() != jvm_type_t::JVM_TYPE_OBJECT) {
-                return;
-            }
-            
-            auto item = objects.find_object(static_cast<jvm_id_t>(*field));
-            if (item == nullptr || item->type() != TYPE_PRIMITIVES_ARRAY) {
-                return;
-            }
-
-            auto array = dynamic_cast<primitives_array_info_t *>(item.get());
-            if (array->item_type() != jvm_type_t::JVM_TYPE_CHAR) {
-                return;
-            }
-
-            std::u16string text;
-            for (auto item = std::begin(*array); item != std::end(*array); ++item) {
-                _value += _converter.to_bytes(static_cast<jvm_char_t>(*item));
-            }
-        }
+        string_info_impl_t(const instance_info_impl_t& obj, const objects_index_t& objects);
     private:
         std::string _value;
         static text_converter _converter;
