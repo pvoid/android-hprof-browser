@@ -20,7 +20,7 @@
 namespace hprof {
     class gc_root_impl_t : public gc_root_t {
     public:
-        virtual ~gc_root_impl_t() {}
+        virtual ~gc_root_impl_t() override;
         virtual root_type_t type() const override { return _root_type; }
         virtual jvm_id_t object_id() const override { return _object_id; }
         virtual const jni_global_info_t& jni_global_info() const override { return _jni_global; }
@@ -63,8 +63,7 @@ namespace hprof {
 
     template<>
     inline gc_root_impl_t gc_root_impl_t::create<gc_root_t::UNKNOWN>(jvm_id_t object_id) {
-        gc_root_impl_t root { gc_root_t::UNKNOWN, object_id };
-        return root;
+        return gc_root_impl_t { gc_root_t::UNKNOWN, object_id };
     }
 
     template<>

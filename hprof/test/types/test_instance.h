@@ -17,14 +17,15 @@
 
 #include <gtest/gtest.h>
 
+#include "types/class.h"
 #include "types/instance.h"
 
-using namespace hprof;
+#include "mocks.h"
 
-TEST(instance_info_impl_t, When_Always_Expect_TypeIsInstance) {
-    auto instance = instance_info_impl_t::create(4, 0xc0f060, 0);
-    ASSERT_EQ(object_info_t::TYPE_INSTANCE, instance->type());
-}
+using namespace hprof;
+using testing::Return;
+using testing::ReturnRef;
+using testing::_;
 
 TEST(instance_info_impl_t, When_ClassIdIsNotSet_Expect_Return0) {
     auto instance = instance_info_impl_t::create(4, 0xc0f060, 0);
@@ -37,16 +38,31 @@ TEST(instance_info_impl_t, When_SetClassId300_Expect_ReturnSameClassId300) {
     ASSERT_EQ(300, instance->class_id());
 }
 
-TEST(class_info_impl_t, When_ClassIsNotSet_Expect_ReturnNull) {
+TEST(instance_info_impl_t, When_ClassIsNotSet_Expect_ReturnNull) {
     auto instance = instance_info_impl_t::create(4, 0xc0f060, 0);
     ASSERT_EQ(nullptr, instance->get_class());
 }
 
-TEST(class_info_impl_t, When_ClassSuper_Expect_ReturnSameinstance) {
-    auto cls = class_info_impl_t::create(4, 1000, 0);
+TEST(instance_info_impl_t, When_ClassSuper_Expect_ReturnSameinstance) {
+    mock_fields_iterator_t iterator;
+    mock_fields_iterator_helper_t helper { &iterator };
+
+    EXPECT_CALL(iterator, not_equals(_)).Times(1).WillOnce(Return(false));
+
+    mock_fields_spec_t fields;
+    EXPECT_CALL(fields, begin()).Times(1).WillOnce(Return(helper));
+    EXPECT_CALL(fields, end()).Times(1).WillOnce(Return(helper));
+
+    mock_class_info_t cls;
+    EXPECT_CALL(cls, fields()).Times(2).WillRepeatedly(ReturnRef(fields));
+    EXPECT_CALL(cls, super()).Times(1).WillOnce(Return(nullptr));
+    
+    auto item = std::make_shared<mock_heap_item_t>();
+    EXPECT_CALL(*item, as_class()).Times(2).WillRepeatedly(Return(&cls));
+    
     auto instance = instance_info_impl_t::create(4, 0xc0f060, 0);
-    instance->set_class(cls);
-    ASSERT_EQ(cls.get(), instance->get_class());
+    instance->set_class(item);
+    ASSERT_EQ(&cls, instance->get_class());
 }
 
 TEST(instance_info_impl_t, When_StackTraceIdDefaultValue_Expect_Return0) {

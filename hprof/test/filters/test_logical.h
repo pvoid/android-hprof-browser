@@ -30,40 +30,30 @@ TEST(filter_not_t, When_Match_Expect_NoMatch) {
     auto filter = std::make_unique<mock_filter_t>();
     EXPECT_CALL(*filter, apply_filter(_, _)).Times(1).WillOnce(Return(filter_t::Match));
     filter_not_t filter_not { std::move(filter) };
-    object_info_t *object = nullptr;
+    auto item = std::make_shared<mock_heap_item_t>();
     mock_objects_index_t objects;
 
-    ASSERT_EQ(filter_t::NoMatch, filter_not(object, objects));
+    ASSERT_EQ(filter_t::NoMatch, filter_not(item, objects));
 }
 
 TEST(filter_not_t, When_NoMatch_Expect_Match) {
     auto filter = std::make_unique<mock_filter_t>();
     EXPECT_CALL(*filter, apply_filter(_, _)).Times(1).WillOnce(Return(filter_t::NoMatch));
     filter_not_t filter_not { std::move(filter) };
-    object_info_t *object = nullptr;
+    auto item = std::make_shared<mock_heap_item_t>();
     mock_objects_index_t objects;
 
-    ASSERT_EQ(filter_t::Match, filter_not(object, objects));
+    ASSERT_EQ(filter_t::Match, filter_not(item, objects));
 }
 
 TEST(filter_not_t, When_Fail_Expect_Fail) {
     auto filter = std::make_unique<mock_filter_t>();
     EXPECT_CALL(*filter, apply_filter(_, _)).Times(1).WillOnce(Return(filter_t::Fail));
     filter_not_t filter_not { std::move(filter) };
-    object_info_t *object = nullptr;
+    auto item = std::make_shared<mock_heap_item_t>();
     mock_objects_index_t objects;
 
-    ASSERT_EQ(filter_t::Fail, filter_not(object, objects));
-}
-
-TEST(filter_not_t, When_Invalid_Expect_Fail) {
-    auto filter = std::make_unique<mock_filter_t>();
-    EXPECT_CALL(*filter, apply_filter(_, _)).Times(1).WillOnce(Return(static_cast<filter_t::filter_result_t>(100)));
-    filter_not_t filter_not { std::move(filter) };
-    object_info_t *object = nullptr;
-    mock_objects_index_t objects;
-
-    ASSERT_EQ(filter_t::Fail, filter_not(object, objects));
+    ASSERT_EQ(filter_t::Fail, filter_not(item, objects));
 }
 
 TEST(filter_and_t, When_MatchAndMatch_Expect_Match) {
@@ -75,10 +65,10 @@ TEST(filter_and_t, When_MatchAndMatch_Expect_Match) {
 
 
     filter_and_t filter_and { std::move(filter_left), std::move(filter_right) };
-    object_info_t *object = nullptr;
+    auto item = std::make_shared<mock_heap_item_t>();
     mock_objects_index_t objects;
 
-    ASSERT_EQ(filter_t::Match, filter_and(object, objects));
+    ASSERT_EQ(filter_t::Match, filter_and(item, objects));
 }
 
 TEST(filter_and_t, When_NoMatchAndMatch_Expect_NoMatch) {
@@ -90,10 +80,10 @@ TEST(filter_and_t, When_NoMatchAndMatch_Expect_NoMatch) {
 
 
     filter_and_t filter_and { std::move(filter_left), std::move(filter_right) };
-    object_info_t *object = nullptr;
+    auto item = std::make_shared<mock_heap_item_t>();
     mock_objects_index_t objects;
 
-    ASSERT_EQ(filter_t::NoMatch, filter_and(object, objects));
+    ASSERT_EQ(filter_t::NoMatch, filter_and(item, objects));
 }
 
 TEST(filter_and_t, When_MatchAndNoMatch_Expect_NoMatch) {
@@ -105,10 +95,10 @@ TEST(filter_and_t, When_MatchAndNoMatch_Expect_NoMatch) {
 
 
     filter_and_t filter_and { std::move(filter_left), std::move(filter_right) };
-    object_info_t *object = nullptr;
+    auto item = std::make_shared<mock_heap_item_t>();
     mock_objects_index_t objects;
 
-    ASSERT_EQ(filter_t::NoMatch, filter_and(object, objects));
+    ASSERT_EQ(filter_t::NoMatch, filter_and(item, objects));
 }
 
 TEST(filter_and_t, When_NoMatchAndNoMatch_Expect_NoMatch) {
@@ -120,10 +110,10 @@ TEST(filter_and_t, When_NoMatchAndNoMatch_Expect_NoMatch) {
 
 
     filter_and_t filter_and { std::move(filter_left), std::move(filter_right) };
-    object_info_t *object = nullptr;
+    auto item = std::make_shared<mock_heap_item_t>();
     mock_objects_index_t objects;
 
-    ASSERT_EQ(filter_t::NoMatch, filter_and(object, objects));
+    ASSERT_EQ(filter_t::NoMatch, filter_and(item, objects));
 }
 
 TEST(filter_and_t, When_FailAndAny_Expect_Fail) {
@@ -135,10 +125,10 @@ TEST(filter_and_t, When_FailAndAny_Expect_Fail) {
 
 
     filter_and_t filter_and { std::move(filter_left), std::move(filter_right) };
-    object_info_t *object = nullptr;
+    auto item = std::make_shared<mock_heap_item_t>();
     mock_objects_index_t objects;
 
-    ASSERT_EQ(filter_t::Fail, filter_and(object, objects));
+    ASSERT_EQ(filter_t::Fail, filter_and(item, objects));
 }
 
 TEST(filter_and_t, When_MatchAndFail_Expect_Fail) {
@@ -150,10 +140,10 @@ TEST(filter_and_t, When_MatchAndFail_Expect_Fail) {
 
 
     filter_and_t filter_and { std::move(filter_left), std::move(filter_right) };
-    object_info_t *object = nullptr;
+    auto item = std::make_shared<mock_heap_item_t>();
     mock_objects_index_t objects;
 
-    ASSERT_EQ(filter_t::Fail, filter_and(object, objects));
+    ASSERT_EQ(filter_t::Fail, filter_and(item, objects));
 }
 
 TEST(filter_and_t, When_NoMatchAndFail_Expect_Fail) {
@@ -165,10 +155,10 @@ TEST(filter_and_t, When_NoMatchAndFail_Expect_Fail) {
 
 
     filter_and_t filter_and { std::move(filter_left), std::move(filter_right) };
-    object_info_t *object = nullptr;
+    auto item = std::make_shared<mock_heap_item_t>();
     mock_objects_index_t objects;
 
-    ASSERT_EQ(filter_t::Fail, filter_and(object, objects));
+    ASSERT_EQ(filter_t::Fail, filter_and(item, objects));
 }
 
 TEST(filter_or_t, When_MatchOrMatch_Expect_Match) {
@@ -180,10 +170,10 @@ TEST(filter_or_t, When_MatchOrMatch_Expect_Match) {
 
 
     filter_or_t filter_or { std::move(filter_left), std::move(filter_right) };
-    object_info_t *object = nullptr;
+    auto item = std::make_shared<mock_heap_item_t>();
     mock_objects_index_t objects;
 
-    ASSERT_EQ(filter_t::Match, filter_or(object, objects));
+    ASSERT_EQ(filter_t::Match, filter_or(item, objects));
 }
 
 TEST(filter_or_t, When_MatchOrNoMatch_Expect_Match) {
@@ -195,10 +185,10 @@ TEST(filter_or_t, When_MatchOrNoMatch_Expect_Match) {
 
 
     filter_or_t filter_or { std::move(filter_left), std::move(filter_right) };
-    object_info_t *object = nullptr;
+    auto item = std::make_shared<mock_heap_item_t>();
     mock_objects_index_t objects;
 
-    ASSERT_EQ(filter_t::Match, filter_or(object, objects));
+    ASSERT_EQ(filter_t::Match, filter_or(item, objects));
 }
 
 TEST(filter_or_t, When_NoMatchOrMatch_Expect_Match) {
@@ -210,10 +200,10 @@ TEST(filter_or_t, When_NoMatchOrMatch_Expect_Match) {
 
 
     filter_or_t filter_or { std::move(filter_left), std::move(filter_right) };
-    object_info_t *object = nullptr;
+    auto item = std::make_shared<mock_heap_item_t>();
     mock_objects_index_t objects;
 
-    ASSERT_EQ(filter_t::Match, filter_or(object, objects));
+    ASSERT_EQ(filter_t::Match, filter_or(item, objects));
 }
 
 TEST(filter_or_t, When_NoMatchOrNoMatch_Expect_NoMatch) {
@@ -225,10 +215,10 @@ TEST(filter_or_t, When_NoMatchOrNoMatch_Expect_NoMatch) {
 
 
     filter_or_t filter_or { std::move(filter_left), std::move(filter_right) };
-    object_info_t *object = nullptr;
+    auto item = std::make_shared<mock_heap_item_t>();
     mock_objects_index_t objects;
 
-    ASSERT_EQ(filter_t::NoMatch, filter_or(object, objects));
+    ASSERT_EQ(filter_t::NoMatch, filter_or(item, objects));
 }
 
 TEST(filter_or_t, When_FailOrAny_Expect_Fail) {
@@ -240,10 +230,10 @@ TEST(filter_or_t, When_FailOrAny_Expect_Fail) {
 
 
     filter_or_t filter_or { std::move(filter_left), std::move(filter_right) };
-    object_info_t *object = nullptr;
+    auto item = std::make_shared<mock_heap_item_t>();
     mock_objects_index_t objects;
 
-    ASSERT_EQ(filter_t::Fail, filter_or(object, objects));
+    ASSERT_EQ(filter_t::Fail, filter_or(item, objects));
 }
 
 TEST(filter_or_t, When_MatchOrFail_Expect_Fail) {
@@ -255,10 +245,10 @@ TEST(filter_or_t, When_MatchOrFail_Expect_Fail) {
 
 
     filter_or_t filter_or { std::move(filter_left), std::move(filter_right) };
-    object_info_t *object = nullptr;
+    auto item = std::make_shared<mock_heap_item_t>();
     mock_objects_index_t objects;
 
-    ASSERT_EQ(filter_t::Fail, filter_or(object, objects));
+    ASSERT_EQ(filter_t::Fail, filter_or(item, objects));
 }
 
 TEST(filter_or_t, When_NoMatchOrFail_Expect_Fail) {
@@ -270,8 +260,8 @@ TEST(filter_or_t, When_NoMatchOrFail_Expect_Fail) {
 
 
     filter_or_t filter_or { std::move(filter_left), std::move(filter_right) };
-    object_info_t *object = nullptr;
+    auto item = std::make_shared<mock_heap_item_t>();
     mock_objects_index_t objects;
 
-    ASSERT_EQ(filter_t::Fail, filter_or(object, objects));
+    ASSERT_EQ(filter_t::Fail, filter_or(item, objects));
 }

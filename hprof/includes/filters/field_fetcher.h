@@ -35,18 +35,19 @@ namespace hprof {
         }
 
         template<typename action_t>
-        bool apply(const object_info_t* object, const objects_index_t& helper, const action_t& action) const {
+        bool apply(const heap_item_ptr_t& object, const objects_index_t& helper, const action_t& action) const {
             if (_fields.empty()) {
                 return false;
             }
             
             auto it = std::begin(_fields);
+            heap_item_ptr_t item = object;
             for (;;) {
-                if (object == nullptr || (object->type() != object_info_t::TYPE_INSTANCE && object->type() != object_info_t::TYPE_STRING)) {
+                if (item == nullptr || (item->type() != heap_item_t::Object && item->type() != heap_item_t::String)) {
                     return false;
                 }
 
-                auto& fields = dynamic_cast<const instance_info_t*>(object)->fields();
+                auto& fields = static_cast<const instance_info_t*>(*item)->fields();
                 auto field = fields.find(*it);
                 
                 if (field == std::end(fields)) {
@@ -61,7 +62,7 @@ namespace hprof {
                     return false;
                 }
 
-                object = helper.find_object(static_cast<jvm_id_t>(*field)).get();
+                item = helper.find_object(static_cast<jvm_id_t>(*field));
             }
 
             return false;

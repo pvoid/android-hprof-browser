@@ -24,13 +24,26 @@ namespace hprof {
     public:
         explicit filter_instance_of_t(const std::string& name) : _class_name(name) {}
         virtual ~filter_instance_of_t() {}
-        virtual filter_result_t operator()(const object_info_t* object, const objects_index_t& objects) const override {
-            if (object == nullptr || (object->type() != object_info_t::TYPE_INSTANCE && object->type() != object_info_t::TYPE_STRING)) {
+        virtual filter_result_t operator()(const heap_item_ptr_t& item, const objects_index_t&) const override {
+            if (item == nullptr) {
                 return NoMatch;
             }
 
-            const instance_info_t* instance = dynamic_cast<const instance_info_t*>(object);
-            const class_info_t* cls = instance->get_class();
+            const class_info_t* cls = nullptr;
+            
+            switch (item->type()) {
+                case heap_item_t::Object:
+                    cls = static_cast<const instance_info_t*>(*item)->get_class();
+                    break;
+                case heap_item_t::String:
+                    cls = static_cast<const string_info_t*>(*item)->get_class();
+                    break;
+                case heap_item_t::Class:
+                case heap_item_t::PrimitivesArray:
+                case heap_item_t::ObjectsArray:
+                    break;
+            }
+
             while(cls != nullptr) {
                 // TODO: fuzzy case insensitive comparaison
                 if (cls->name() == _class_name) {

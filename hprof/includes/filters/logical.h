@@ -16,6 +16,7 @@
 #pragma once
 
 #include "filters/base.h"
+#include <cassert>
 
 namespace hprof {
     class filter_not_t : public filter_t {
@@ -25,16 +26,16 @@ namespace hprof {
         filter_not_t(filter_not_t&&) = default;
         virtual ~filter_not_t() {}
 
-        filter_result_t operator()(const object_info_t* object, const objects_index_t& objects) const override {
+        filter_result_t operator()(const heap_item_ptr_t& object, const objects_index_t& objects) const override {
             switch ((*_filter)(object, objects)) {
                 case Match:
                     return NoMatch;
                 case NoMatch:
                     return Match;
                 case Fail:
-                default:
                     return Fail;
             }
+            assert(false);
         }
     private:
         std::unique_ptr<filter_t> _filter;
@@ -49,12 +50,12 @@ namespace hprof {
         filter_and_t(const filter_and_t&) = delete;
         filter_and_t(filter_and_t&&) = default;
         virtual ~filter_and_t() {}
-        filter_result_t operator()(const object_info_t* object, const objects_index_t& objects) const override {
-            auto left_result = (*_left)(object, objects);
+        filter_result_t operator()(const heap_item_ptr_t& item, const objects_index_t& objects) const override {
+            auto left_result = (*_left)(item, objects);
             if (left_result == Fail) {
                 return Fail;
             }
-            auto right_result = (*_right)(object, objects);
+            auto right_result = (*_right)(item, objects);
             if (right_result == Fail) {
                 return Fail;
             }
@@ -73,12 +74,12 @@ namespace hprof {
         filter_or_t(const filter_or_t&) = delete;
         filter_or_t(filter_or_t&&) = default;
         virtual ~filter_or_t() {}
-        filter_result_t operator()(const object_info_t* object, const objects_index_t& objects) const override {
-            auto left_result = (*_left)(object, objects);
+        filter_result_t operator()(const heap_item_ptr_t& item, const objects_index_t& objects) const override {
+            auto left_result = (*_left)(item, objects);
             if (left_result == Fail) {
                 return Fail;
             }
-            auto right_result = (*_right)(object, objects);
+            auto right_result = (*_right)(item, objects);
             if (right_result == Fail) {
                 return Fail;
             }

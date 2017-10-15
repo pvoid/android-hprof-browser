@@ -41,7 +41,7 @@ enum hprof_type_t : u_int8_t {
     HPROF_TYPE_LONG = 11,
 };
 
-size_t get_field_size(hprof_type_t type, size_t id_size) {
+static size_t get_field_size(hprof_type_t type, size_t id_size) {
     switch (type) {
         case HPROF_TYPE_OBJECT:
             return id_size;
@@ -57,12 +57,11 @@ size_t get_field_size(hprof_type_t type, size_t id_size) {
         case HPROF_TYPE_DOUBLE:
         case HPROF_TYPE_LONG:
             return 8;
-        default:
-            return 0;
     }
+    assert(false);
 }
 
-jvm_type_t to_jvm_type(hprof_type_t type) {
+static jvm_type_t to_jvm_type(hprof_type_t type) {
     switch (type) {
         case HPROF_TYPE_OBJECT: return jvm_type_t::JVM_TYPE_OBJECT;
         case HPROF_TYPE_BOOL:   return jvm_type_t::JVM_TYPE_BOOL;
@@ -73,32 +72,14 @@ jvm_type_t to_jvm_type(hprof_type_t type) {
         case HPROF_TYPE_SHORT:  return jvm_type_t::JVM_TYPE_SHORT;
         case HPROF_TYPE_INT:    return jvm_type_t::JVM_TYPE_INT;
         case HPROF_TYPE_LONG:   return jvm_type_t::JVM_TYPE_LONG;
-        default:                return jvm_type_t::JVM_TYPE_UNKNOWN;
     }
+    return jvm_type_t::JVM_TYPE_UNKNOWN;
 }
-
-class temp_objects_index : public objects_index_t {
-public:
-    temp_objects_index(const std::vector<object_info_impl_ptr_t>& objects) : _objects(objects) {}
-
-    virtual object_info_ptr_t find_object(jvm_id_t id) const override {
-        auto result = std::lower_bound(std::begin(_objects), std::end(_objects), id, 
-            [] (auto item, auto needle) -> bool { return item->id() < needle; });
-        
-        if (result == std::end(_objects)) {
-            return nullptr;
-        }
-
-        return *result;
-    }
-private:
-    const std::vector<object_info_impl_ptr_t>& _objects;
-};
 
 unique_ptr<heap_profile_t> data_reader_v103_t::build(hprof_istream_t& in) const {
     heap_profile_data_t data;
     // Read id size
-    data.id_size = in.read_int32();
+    data.id_size = static_cast<u_int8_t>(in.read_int32());
     if (data.id_size == 0 || in.eof()) {
         return std::make_unique<heap_profile_impl_t>("Can't read id size from heap file");
     }
@@ -114,10 +95,10 @@ unique_ptr<heap_profile_t> data_reader_v103_t::build(hprof_istream_t& in) const 
     int32_t time_delta;
     int32_t section_size;
 
-    read_token_result_t result;
+    read_token_result_t read_result;
     do {
-        result = next_record(in, tag, time_delta, section_size);
-        switch (result) {
+        read_result = next_record(in, tag, time_delta, section_size);
+        switch (read_result) {
             case HAS_NEXT_TOKEN: {
                 hprof_section_reader reader { in, data.id_size, static_cast<size_t>(section_size) };
 
@@ -134,11 +115,11 @@ unique_ptr<heap_profile_t> data_reader_v103_t::build(hprof_istream_t& in) const 
             case DONE:
                 break;
         }
-    } while(result != DONE);
+    } while(read_result != DONE);
 
-    prepare(data);
-
-    return std::make_unique<heap_profile_impl_t>(data.objects, data.classes, std::move(data.gc_roots));
+    auto result = std::make_unique<heap_profile_impl_t>(std::move(data.gc_roots));
+    if (!prepare(data, *result)) return std::make_unique<heap_profile_impl_t>("Error occuried while perapring data");
+    return result;
 }
 
 data_reader_v103_t::read_token_result_t data_reader_v103_t::next_record(hprof_istream_t& in, hprof_tag_t& tag, int32_t& time_delta, int32_t& size) const {
@@ -192,13 +173,13 @@ bool data_reader_v103_t::process_next_token(hprof_tag_t tag, hprof_section_reade
 }
 
 bool data_reader_v103_t::read_utf8_string(hprof_section_reader& reader, heap_profile_data_t& data) const {
-    id_t id = reader.read_id();
+    jvm_id_t id = reader.read_id();
     if (id == 0) {
         return false;
     }
 
     size_t length = reader.data_left();
-    u_int8_t text[length + 1];
+    u_int8_t text[length + 1]; //FIXME: Possible heap overflow problem
     if (!reader.read_bytes(text, length)) {
         return false;
     }
@@ -212,9 +193,9 @@ bool data_reader_v103_t::read_utf8_string(hprof_section_reader& reader, heap_pro
 bool data_reader_v103_t::read_load_class(hprof_section_reader& reader, heap_profile_data_t& data) const {
     int32_t class_seq = reader.read_int32();
 
-    id_t class_id = reader.read_id();
+    jvm_id_t class_id = reader.read_id();
     int32_t stack_trace_id = reader.read_int32();
-    id_t class_name_id = reader.read_id();
+    jvm_id_t class_name_id = reader.read_id();
 
     if (reader.is_error_occurred()) return false;
 
@@ -247,14 +228,14 @@ bool data_reader_v103_t::read_stack_trace(hprof_section_reader& reader, heap_pro
 bool data_reader_v103_t::read_heap_dump_segment(hprof_section_reader& reader, heap_profile_data_t& data) const {
     heap_info_t heap_info { 0, 0 };
 
-    size_t start_index_objects = data.objects.size();
-    size_t start_index_classes = data.classes.size();
+    size_t index_instances = data.instances.size();
+    size_t index_primitives_arrays = data.primitives_arrays.size();
+    size_t index_objects_arrays = data.objects_arrays.size();
+    size_t index_classes = data.classes.size();
 
     while (reader.has_more_data()) {
         auto subtype = static_cast<hprof_gc_tag_t>(reader.read_byte());
         if (reader.is_error_occurred()) return false;
-
-        // std::cout << "Subtype: " << subtype << " data left: " << reader.data_left() << std::endl;
 
         switch (subtype) {
             case  DUMP_CLASS_DUMP: {
@@ -265,21 +246,21 @@ bool data_reader_v103_t::read_heap_dump_segment(hprof_section_reader& reader, he
             }
 
             case DUMP_INSTANCE_DUMP: {
-                if (!read_instance_dump(reader, data.id_size, data.objects)) {
+                if (!read_instance_dump(reader, data.id_size, data.instances)) {
                     return false;
                 }
                 break;
             }
 
             case DUMP_OBJECT_ARRAY_DUMP: {
-                if (!read_objects_array_dump(reader, data.id_size, data.objects)) {
+                if (!read_objects_array_dump(reader, data.id_size, data.objects_arrays)) {
                     return false;
                 }
                 break;
             }
 
             case DUMP_PRIMITIVE_ARRAY_DUMP: {
-                if (!read_array_dump(reader, data.id_size, data.objects)) {
+                if (!read_primitives_array_dump(reader, data.id_size, data.primitives_arrays)) {
                     return false;
                 }
                 break;
@@ -287,7 +268,7 @@ bool data_reader_v103_t::read_heap_dump_segment(hprof_section_reader& reader, he
 
             case DUMP_PRIMITIVE_ARRAY_NODATA_DUMP: {
                 // FIXME: Check http://androidxref.com/7.1.1_r6/xref/dalvik/tools/hprof-conv/HprofConv.c#554
-                id_t object_id = reader.read_id();
+                /*jvm_id_t object_id = */reader.read_id();
                 // Skip rest 5 bytes
                 u_int8_t buff[5];
                 reader.read_bytes(buff);
@@ -301,26 +282,34 @@ bool data_reader_v103_t::read_heap_dump_segment(hprof_section_reader& reader, he
             }
 
             default:
-                if (!read_gc_root(subtype, reader, data.id_size, data.gc_roots)) {
+                if (!read_gc_root(subtype, reader, data.gc_roots)) {
                     return false;
                 }
                 break;
         }
     }
 
-    for (; start_index_objects < data.objects.size(); ++start_index_objects) {
-        data.objects[start_index_objects]->set_heap_type(heap_info.type);
+    for (; index_instances < data.instances.size(); ++index_instances) {
+        data.instances[index_instances]->set_heap_type(heap_info.type);
     }
 
-    for (; start_index_classes < data.classes.size(); ++start_index_classes) {
-        data.classes[start_index_classes]->set_heap_type(heap_info.type);
+    for (; index_classes < data.classes.size(); ++index_classes) {
+        data.classes[index_classes]->set_heap_type(heap_info.type);
+    }
+
+    for (; index_primitives_arrays < data.primitives_arrays.size(); ++index_primitives_arrays) {
+        data.primitives_arrays[index_primitives_arrays]->set_heap_type(heap_info.type);
+    }
+
+    for (; index_objects_arrays < data.objects_arrays.size(); ++index_objects_arrays) {
+        data.objects_arrays[index_objects_arrays]->set_heap_type(heap_info.type);
     }
 
     return true;
 }
 
 // NOTE: http://androidxref.com/7.1.1_r6/xref/art/runtime/hprof/hprof.cc#1173
-bool data_reader_v103_t::read_class_dump(hprof_section_reader& reader, size_t id_size, 
+bool data_reader_v103_t::read_class_dump(hprof_section_reader& reader, u_int8_t id_size, 
                 const std::unordered_map<jvm_id_t, std::string>& strings, std::vector<class_info_impl_ptr_t>& classes) const {
     jvm_id_t class_id = reader.read_id();
     int32_t stack_id = reader.read_int32();
@@ -333,7 +322,7 @@ bool data_reader_v103_t::read_class_dump(hprof_section_reader& reader, size_t id
     reader.read_id();
     reader.read_id();
 
-    int32_t instance_size = reader.read_int32();
+    size_t instance_size = static_cast<size_t>(reader.read_int32());
     // pool, value is always empty
     reader.read_int16();
 
@@ -367,13 +356,14 @@ bool data_reader_v103_t::read_class_dump(hprof_section_reader& reader, size_t id
             pointer += field_size;
         }
 
-        data_size = pointer - buffer.get();
+        data_size = static_cast<size_t>(pointer - buffer.get());
     }
 
     auto klass = class_info_impl_t::create(id_size, class_id, data_size);
     klass->set_super_id(super_id);
     klass->set_class_loader_id(class_loader_id);
     klass->set_instance_size(instance_size);
+    klass->set_stack_trace_id(stack_id);
 
     if (!static_fields.empty()) {
         for (auto& field : static_fields) {
@@ -382,10 +372,10 @@ bool data_reader_v103_t::read_class_dump(hprof_section_reader& reader, size_t id
         std::memcpy(klass->data(), buffer.get(), data_size);
     }
 
-    int16_t fields_count = reader.read_int16();
+    size_t fields_count = static_cast<size_t>(reader.read_int16());
     size_t offset = 0;
     for (size_t index = 0; index < fields_count; ++index) {
-        id_t field_name_id = reader.read_id();
+        jvm_id_t field_name_id = reader.read_id();
         auto field_type = static_cast<hprof_type_t>(reader.read_byte());
         if (reader.is_error_occurred()) return false;
 
@@ -399,17 +389,17 @@ bool data_reader_v103_t::read_class_dump(hprof_section_reader& reader, size_t id
         offset += get_field_size(field_type, id_size);
     }
 
-    classes.push_back(klass);
+    classes.push_back(std::move(klass));
 
     return true;
 }
 
 // NOTE: Specs http://androidxref.com/7.1.1_r6/xref/art/runtime/hprof/hprof.cc#1303
-bool data_reader_v103_t::read_instance_dump(hprof_section_reader& reader, size_t id_size, std::vector<object_info_impl_ptr_t>& objects) const {
-    id_t object_id = reader.read_id();
+bool data_reader_v103_t::read_instance_dump(hprof_section_reader& reader, u_int8_t id_size, std::vector<instance_info_impl_ptr_t>& objects) const {
+    jvm_id_t object_id = reader.read_id();
     int32_t stack_trace_id = reader.read_int32();
-    id_t class_id = reader.read_id();
-    int32_t object_size = reader.read_int32();
+    jvm_id_t class_id = reader.read_id();
+    size_t object_size = static_cast<size_t>(reader.read_int32());
 
     if (reader.is_error_occurred() || reader.data_left() < object_size) return false;
 
@@ -422,17 +412,17 @@ bool data_reader_v103_t::read_instance_dump(hprof_section_reader& reader, size_t
     reader.read_bytes(result->data(), object_size);
     if (reader.is_error_occurred()) return false;
 
-    objects.push_back(result);
+    objects.push_back(std::move(result));
 
     return true;
 }
 
 // TODO: Refs http://androidxref.com/7.1.1_r6/xref/art/runtime/hprof/hprof.cc#1263
-bool data_reader_v103_t::read_objects_array_dump(hprof_section_reader& reader, size_t id_size, std::vector<object_info_impl_ptr_t>& objects) const {
-    id_t object_id = reader.read_id();
+bool data_reader_v103_t::read_objects_array_dump(hprof_section_reader& reader, u_int8_t id_size, std::vector<objects_array_info_impl_ptr_t>& objects) const {
+    jvm_id_t object_id = reader.read_id();
     int32_t stack_trace_id = reader.read_int32();
-    int32_t length = reader.read_int32();
-    id_t class_id = reader.read_id();
+    size_t length = static_cast<size_t>(reader.read_int32());
+    jvm_id_t class_id = reader.read_id();
 
     if (reader.is_error_occurred()) return false;
 
@@ -443,16 +433,16 @@ bool data_reader_v103_t::read_objects_array_dump(hprof_section_reader& reader, s
     reader.read_bytes(result->data(), array_size);
     if (reader.is_error_occurred()) return false;
 
-    objects.push_back(result);
+    objects.push_back(std::move(result));
 
     return true;
 }
 
 // NOTE: Ref: http://androidxref.com/7.1.1_r6/xref/art/runtime/hprof/hprof.cc#1283
-bool data_reader_v103_t::read_array_dump(hprof_section_reader& reader, size_t id_size, std::vector<object_info_impl_ptr_t>& objects) const {
-    id_t object_id = reader.read_id();
+bool data_reader_v103_t::read_primitives_array_dump(hprof_section_reader& reader, u_int8_t id_size, std::vector<primitives_array_info_impl_ptr_t>& objects) const {
+    jvm_id_t object_id = reader.read_id();
     int32_t stack_trace_id = reader.read_int32();
-    int32_t length = reader.read_int32();
+    size_t length = static_cast<size_t>(reader.read_int32());
     auto type = static_cast<hprof_type_t>(reader.read_byte());
 
     if (reader.is_error_occurred()) return false;
@@ -465,12 +455,12 @@ bool data_reader_v103_t::read_array_dump(hprof_section_reader& reader, size_t id
     reader.read_bytes(result->data(), array_size);
     if (reader.is_error_occurred()) return false;
 
-    objects.push_back(result);
+    objects.push_back(std::move(result));
 
     return true;
 }
 
-bool data_reader_v103_t::read_gc_root(hprof_gc_tag_t subtype, hprof_section_reader& reader, size_t id_size, std::vector<gc_root_impl_ptr_t>& roots) const {
+bool data_reader_v103_t::read_gc_root(hprof_gc_tag_t subtype, hprof_section_reader& reader, std::vector<gc_root_impl_ptr_t>& roots) const {
     switch (subtype) {
         // NOTE: http://androidxref.com/7.1.1_r6/xref/art/runtime/hprof/hprof.cc#969
         case DUMP_ROOT_UNKNOWN: {
@@ -626,15 +616,11 @@ bool data_reader_v103_t::read_gc_root(hprof_gc_tag_t subtype, hprof_section_read
 }
 
 // TODO: set roots for objects
-bool data_reader_v103_t::prepare(heap_profile_data_t& data) const {
+bool data_reader_v103_t::prepare(heap_profile_data_t& data, heap_profile_impl_t& hprof) const {
     jvm_id_t string_class_id = 0;
 
-    std::sort(std::begin(data.classes), std::end(data.classes), 
-        [] (auto& left, auto& right) -> bool { return left->id() < right->id(); });
-
-    auto find_class_fn = [] (auto item, auto needle) -> bool { return item->id() < needle; };
-
-    // Attach super classes and set name
+    std::vector<heap_item_impl_ptr_t> classes;
+    // Attach class name to each class and build map
     for (auto& klass : data.classes) {
         auto class_info = data.loaded_class.find(klass->id());
         if (class_info != std::end(data.loaded_class)) {
@@ -647,34 +633,50 @@ bool data_reader_v103_t::prepare(heap_profile_data_t& data) const {
             }
         }
 
-        auto super_class = std::lower_bound(std::begin(data.classes), std::end(data.classes), klass->super_id(), find_class_fn);
-        if (super_class != std::end(data.classes) && (*super_class)->id() == klass->super_id()) {
-            klass->set_super_class(*super_class);
+        jvm_id_t id = klass->id();
+        auto ptr = std::make_shared<heap_item_impl_t>(std::move(klass));
+        classes.push_back(ptr);
+
+        hprof.add(id, ptr);
+    }
+
+    // Attach super class
+    for (auto& item : classes) {
+        auto cls = static_cast<class_info_impl_t *>(*item);
+
+        if (cls->super_id() == 0) continue;
+
+        auto super = hprof.find_class(cls->super_id());
+        if (super == nullptr) continue;
+
+        cls->set_super_class(super);
+    }
+
+    for (auto& array : data.primitives_arrays) {
+        jvm_id_t id = array->id();
+        hprof.add(id, std::make_shared<heap_item_impl_t>(std::move(array)));
+    }
+
+    // Attach classes to instances and store items
+    for (auto& object : data.instances) {
+        auto klass = hprof.find_class(object->class_id());
+        if (klass != nullptr) {
+            object->set_class(klass);
+        }
+
+        jvm_id_t id = object->id();
+        if (object->class_id() == string_class_id) {
+            auto str = string_info_impl_t::create(*object, hprof);
+            hprof.add(id, std::make_shared<heap_item_impl_t>(std::move(str)));
+            object.reset(nullptr);
+        } else {
+            hprof.add(id, std::make_shared<heap_item_impl_t>(std::move(object)));
         }
     }
 
-    std::sort(std::begin(data.objects), std::end(data.objects), 
-        [] (auto& left, auto& right) -> bool { return left->id() < right->id(); });
-    
-    temp_objects_index objects { data.objects };
-
-    // Attach classes and replace strings
-    for(auto& item : data.objects) {
-        if (item->type() != object_info_t::TYPE_INSTANCE) {
-            continue;
-        }
-
-        instance_info_impl_t *instance = static_cast<instance_info_impl_t *>(item.get());
-
-        auto klass = std::lower_bound(std::begin(data.classes), std::end(data.classes), instance->class_id(), find_class_fn);
-        if (klass != std::end(data.classes) && (*klass)->id() == instance->class_id()) {
-            instance->set_class(*klass);
-        }
-
-        // check if object is string
-        if (string_class_id != 0 && instance->class_id() == string_class_id) {
-            item = string_info_impl_t::create(*instance, objects);
-        }
+    for (auto& array : data.objects_arrays) {
+        jvm_id_t id = array->id();
+        hprof.add(id, std::make_shared<heap_item_impl_t>(std::move(array)));
     }
 
     return true;

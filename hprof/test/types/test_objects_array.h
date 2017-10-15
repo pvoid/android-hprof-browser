@@ -31,11 +31,6 @@ TEST(objects_array_info_impl_t, When_CreateWithLength10_Expect_LenhthReturnsc10)
     ASSERT_EQ(10, instance->length());
 }
 
-TEST(objects_array_info_impl_t, When_Always_Expect_TypeIsObjectArray) {
-    auto instance = objects_array_info_impl_t::create(4, 0xc0f060, 0xc0c1af, 0, 0);
-    ASSERT_EQ(object_info_t::TYPE_OBJECTS_ARRAY, instance->type());
-}
-
 TEST(objects_array_info_impl_t, When_EmptyArray_Expect_BeginEqualsEns) {
     auto instance = objects_array_info_impl_t::create(4, 0xc0f060, 0xc0c1af, 0, 0);
     ASSERT_EQ(std::end(*instance), std::begin(*instance));

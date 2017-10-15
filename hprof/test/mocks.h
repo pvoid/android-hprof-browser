@@ -34,18 +34,9 @@ public:
 
 class mock_fields_iterator_helper_t;
 
-class fields_iterator_t {
+class mock_fields_iterator_t {
 public:
-    virtual void increment() = 0;
-    virtual void assign(const mock_fields_iterator_helper_t&) = 0;
-    virtual const field_spec_t& ref() const = 0;
-    virtual const field_spec_t* link() const = 0;
-    virtual bool equals(const mock_fields_iterator_helper_t&) const = 0;
-    virtual bool not_equals(const mock_fields_iterator_helper_t&) const = 0;
-};
-
-class mock_fields_iterator_t : public fields_iterator_t {
-public:
+    virtual ~mock_fields_iterator_t() {}
     MOCK_METHOD0(increment, void());
     MOCK_METHOD1(assign, void(const mock_fields_iterator_helper_t&));
     MOCK_CONST_METHOD0(ref, const field_spec_t&());
@@ -57,7 +48,7 @@ public:
 class mock_fields_iterator_helper_t {
     friend class iterator_impl_matcher_t;
 public:
-    explicit mock_fields_iterator_helper_t(fields_iterator_t* impl) : _impl(impl) {}
+    explicit mock_fields_iterator_helper_t(mock_fields_iterator_t* impl) : _impl(impl) {}
 
     mock_fields_iterator_helper_t& operator++() { _impl->increment(); return *this; }
     virtual mock_fields_iterator_helper_t& operator=(const mock_fields_iterator_helper_t& src) { _impl->assign(src); return *this; }
@@ -66,24 +57,37 @@ public:
     bool operator==(const mock_fields_iterator_helper_t&src) const { return _impl->equals(src); }
     bool operator!=(const mock_fields_iterator_helper_t&src) const { return _impl->not_equals(src); }
 private:
-    fields_iterator_t* _impl;
+    mock_fields_iterator_t* _impl;
 };
 
 struct iterator_impl_matcher_t {
 public:
-    explicit iterator_impl_matcher_t(fields_iterator_t* impl) : _impl(impl) {}
+    explicit iterator_impl_matcher_t(mock_fields_iterator_t* impl) : _impl(impl) {}
     bool operator()(const mock_fields_iterator_helper_t& src) const { return _impl == src._impl; }
 private:
-    fields_iterator_t* _impl;
+    mock_fields_iterator_t* _impl;
+};
+
+class mock_fields_spec_t : public fields_spec_t {
+public:
+    virtual ~mock_fields_spec_t() {}
+
+    MOCK_CONST_METHOD0(count, size_t());
+    MOCK_CONST_METHOD1(find, fields_spec_t::iterator(const std::string& name));
+    MOCK_CONST_METHOD0(begin, fields_spec_t::iterator());
+    MOCK_CONST_METHOD0(end, fields_spec_t::iterator());
+    MOCK_CONST_METHOD0(data_size, size_t());
+    MOCK_CONST_METHOD1(get_by_index, fields_spec_t::iterator(size_t));
+    
+    virtual fields_spec_t::iterator operator[](size_t index) const override { return get_by_index(index); }
 };
 
 class mock_instance_info_t : public instance_info_t {
 public:
     virtual ~mock_instance_info_t() {}
     MOCK_CONST_METHOD0(id, jvm_id_t());
-    MOCK_CONST_METHOD0(id_size, size_t());
+    MOCK_CONST_METHOD0(id_size, u_int8_t());
     MOCK_CONST_METHOD0(heap_type, int32_t());
-    virtual object_type_t type() const override { return TYPE_INSTANCE; }
     MOCK_CONST_METHOD1(has_link_to, int32_t (jvm_id_t));
     MOCK_CONST_METHOD0(gc_roots, const std::vector<std::unique_ptr<gc_root_t>>&());
 
@@ -97,9 +101,8 @@ class mock_string_info_t : public string_info_t {
 public:
     virtual ~mock_string_info_t() {}
     MOCK_CONST_METHOD0(id, jvm_id_t());
-    MOCK_CONST_METHOD0(id_size, size_t());
+    MOCK_CONST_METHOD0(id_size, u_int8_t());
     MOCK_CONST_METHOD0(heap_type, int32_t());
-    virtual object_type_t type() const override { return TYPE_STRING; }
     MOCK_CONST_METHOD1(has_link_to, int32_t (jvm_id_t));
     MOCK_CONST_METHOD0(gc_roots, const std::vector<std::unique_ptr<gc_root_t>>&());
 
@@ -114,9 +117,8 @@ class mock_class_info_t : public class_info_t {
 public:
     virtual ~mock_class_info_t() {}
     MOCK_CONST_METHOD0(id, jvm_id_t());
-    MOCK_CONST_METHOD0(id_size, size_t());
+    MOCK_CONST_METHOD0(id_size, u_int8_t());
     MOCK_CONST_METHOD0(heap_type, int32_t());
-    virtual object_type_t type() const override { return TYPE_CLASS; }
     MOCK_CONST_METHOD1(has_link_to, int32_t (jvm_id_t));
     MOCK_CONST_METHOD0(gc_roots, const std::vector<std::unique_ptr<gc_root_t>>&());
 
@@ -129,15 +131,16 @@ public:
     MOCK_CONST_METHOD0(instance_size, size_t());
     MOCK_CONST_METHOD0(fields, const fields_spec_t&());
     MOCK_CONST_METHOD0(static_fields, const fields_values_t&());
+    MOCK_CONST_METHOD0(sequence_number, int32_t());
+    MOCK_CONST_METHOD0(stack_trace_id, int32_t());
 };
 
 class mock_primitives_array_t : public primitives_array_info_t {
 public:
     virtual ~mock_primitives_array_t() {}
     MOCK_CONST_METHOD0(id, jvm_id_t());
-    MOCK_CONST_METHOD0(id_size, size_t());
+    MOCK_CONST_METHOD0(id_size, u_int8_t());
     MOCK_CONST_METHOD0(heap_type, int32_t());
-    virtual object_type_t type() const override { return TYPE_PRIMITIVES_ARRAY; }
     MOCK_CONST_METHOD1(has_link_to, int32_t (jvm_id_t));
     MOCK_CONST_METHOD0(gc_roots, const std::vector<std::unique_ptr<gc_root_t>>&());
 
@@ -156,9 +159,8 @@ class mock_objects_array_t : public objects_array_info_t {
 public:
     virtual ~mock_objects_array_t() {}
     MOCK_CONST_METHOD0(id, jvm_id_t());
-    MOCK_CONST_METHOD0(id_size, size_t());
+    MOCK_CONST_METHOD0(id_size, u_int8_t());
     MOCK_CONST_METHOD0(heap_type, int32_t());
-    virtual object_type_t type() const override { return TYPE_PRIMITIVES_ARRAY; }
     MOCK_CONST_METHOD1(has_link_to, int32_t (jvm_id_t));
     MOCK_CONST_METHOD0(gc_roots, const std::vector<std::unique_ptr<gc_root_t>>&());
 
@@ -173,19 +175,34 @@ public:
     }
 };
 
+class mock_heap_item_t : public heap_item_t {
+public:
+    MOCK_CONST_METHOD0(type, type_t());
+    MOCK_CONST_METHOD0(as_class, const class_info_t*());
+    MOCK_CONST_METHOD0(as_instance, const instance_info_t*());
+    MOCK_CONST_METHOD0(as_string, const string_info_t*());
+    MOCK_CONST_METHOD0(as_primitives_array, const primitives_array_info_t*());
+    MOCK_CONST_METHOD0(as_objects_array, const objects_array_info_t*());
+
+    virtual operator const class_info_t*() const override { return as_class(); }
+    virtual operator const instance_info_t*() const override { return as_instance(); }
+    virtual operator const string_info_t*() const override { return as_string(); }
+    virtual operator const primitives_array_info_t*() const override { return as_primitives_array(); }
+    virtual operator const objects_array_info_t*() const override { return as_objects_array(); }
+};
+
 class mock_filter_t : public filter_t {
 public:
     virtual ~mock_filter_t() {}
 
-    MOCK_CONST_METHOD2(apply_filter, filter_result_t(const object_info_t*, const objects_index_t&));
+    MOCK_CONST_METHOD2(apply_filter, filter_result_t(const heap_item_ptr_t&, const objects_index_t&));
 
-    virtual filter_result_t operator()(const object_info_t* object, const objects_index_t& objects) const override {
-        return apply_filter(object, objects);
+    virtual filter_result_t operator()(const heap_item_ptr_t& item, const objects_index_t& objects) const override {
+        return apply_filter(item, objects);
     }
 };
 
 class mock_objects_index_t : public objects_index_t {
 public:
-    MOCK_CONST_METHOD1(find_object, object_info_ptr_t(jvm_id_t id));
+    MOCK_CONST_METHOD1(find_object, heap_item_ptr_t(jvm_id_t id));
 };
-

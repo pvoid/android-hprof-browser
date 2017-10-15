@@ -19,4 +19,4 @@
 #include "types.h"
 #include "objects_index.h"
 
-void print_object(const hprof::object_info_ptr_t& item, const hprof::objects_index_t& objects, int max_level);
+void print_object(const hprof::heap_item_ptr_t& item, const hprof::objects_index_t& objects, int max_level);

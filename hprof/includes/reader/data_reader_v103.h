@@ -21,6 +21,8 @@
 #include "types/objects_array.h"
 #include "types/primitives_array.h"
 #include "types/string_instance.h"
+#include "types/heap_item.h"
+#include "heap_profile.h"
 
 #include <memory>
 #include <unordered_map>
@@ -46,7 +48,7 @@ namespace hprof {
             TAG_HEAP_DUMP_SEGMENT = 0x1c,
             TAG_HEAP_DUMP_END = 0x2c,
             TAG_CPU_SAMPLES = 0x0d,
-            TAG_CONTROL_SETTINGS = 0x0e,
+            TAG_CONTROL_SETTINGS = 0x0e
         };
 
         enum hprof_gc_tag_t : u_int8_t {
@@ -71,7 +73,7 @@ namespace hprof {
             DUMP_ROOT_VM_INTERNAL = 0x8d,
             DUMP_ROOT_JNI_MONITOR = 0x8e,
             DUMP_UNREACHABLE = 0x90,
-            DUMP_PRIMITIVE_ARRAY_NODATA_DUMP = 0xc3,
+            DUMP_PRIMITIVE_ARRAY_NODATA_DUMP = 0xc3
         };
 
         enum read_token_result_t {
@@ -83,14 +85,14 @@ namespace hprof {
         struct loaded_class_t {
             int32_t class_seq;
             int32_t stack_trace_id;
-            id_t name_id;
+            jvm_id_t name_id;
 
-            loaded_class_t(int32_t seq, int32_t stack_trace, id_t name_id) : class_seq(seq), stack_trace_id(stack_trace), name_id(name_id) {}
+            loaded_class_t(int32_t seq, int32_t stack_trace, jvm_id_t name) : class_seq(seq), stack_trace_id(stack_trace), name_id(name) {}
         };
 
         class hprof_section_reader {
         public:
-            hprof_section_reader(hprof_istream_t& in, size_t id_size, size_t section_size) : 
+            hprof_section_reader(hprof_istream_t& in, u_int8_t id_size, size_t section_size) : 
                 _in(in), _id_size(id_size), _data_left(section_size), _error_occurred(false) {}
 
             bool has_more_data() const { return _data_left > 0; }
@@ -103,12 +105,12 @@ namespace hprof {
                 _data_left -= _id_size;
                 switch (_id_size) {
                     case 4:
-                        return _in.read_int32();
+                        return static_cast<jvm_id_t>(_in.read_int32());
                     case 8:
-                        return _in.read_int64();
+                        return static_cast<jvm_id_t>(_in.read_int64());
                     default:
-                    // TODO: set stream to error state
-                    assert(false);
+                        // TODO: set stream to error state
+                        assert(false);
                 }
                 _error_occurred = true;
                 return 0;
@@ -163,7 +165,7 @@ namespace hprof {
                 return _in.read_int32();
             }
 
-            int32_t read_int16() {
+            int16_t read_int16() {
                 if (_data_left < 2) {
                     _error_occurred = true;
                     return 0;
@@ -182,16 +184,18 @@ namespace hprof {
             }
         private:
             hprof_istream_t& _in;
-            size_t _id_size;
+            u_int8_t _id_size;
             size_t _data_left;
             bool _error_occurred;
         };
 
         struct heap_profile_data_t {
-            size_t id_size;
+            u_int8_t id_size;
             std::unordered_map<jvm_id_t, std::string> strings;
             std::unordered_map<jvm_id_t, loaded_class_t> loaded_class;
-            std::vector<object_info_impl_ptr_t> objects;
+            std::vector<instance_info_impl_ptr_t> instances;
+            std::vector<primitives_array_info_impl_ptr_t> primitives_arrays;
+            std::vector<objects_array_info_impl_ptr_t> objects_arrays;
             std::vector<gc_root_impl_ptr_t> gc_roots;
             std::vector<class_info_impl_ptr_t> classes;
         };
@@ -203,11 +207,11 @@ namespace hprof {
         bool read_stack_frame(hprof_section_reader& reader, heap_profile_data_t&) const;
         bool read_stack_trace(hprof_section_reader& reader, heap_profile_data_t&) const;
         bool read_heap_dump_segment(hprof_section_reader& reader, heap_profile_data_t& data) const;
-        bool read_class_dump(hprof_section_reader& reader, size_t id_size, const std::unordered_map<jvm_id_t, std::string>& strings, std::vector<class_info_impl_ptr_t>& classes) const;
-        bool read_instance_dump(hprof_section_reader& reader, size_t id_size, std::vector<object_info_impl_ptr_t>& objects) const;
-        bool read_objects_array_dump(hprof_section_reader& reader, size_t id_size, std::vector<object_info_impl_ptr_t>& objects) const;
-        bool read_array_dump(hprof_section_reader& reader, size_t id_size, std::vector<object_info_impl_ptr_t>& objects) const;
-        bool read_gc_root(hprof_gc_tag_t subtype, hprof_section_reader& reader, size_t id_size, std::vector<gc_root_impl_ptr_t>& roots) const;
-        bool prepare(heap_profile_data_t& data) const;
+        bool read_class_dump(hprof_section_reader& reader, u_int8_t id_size, const std::unordered_map<jvm_id_t, std::string>& strings, std::vector<class_info_impl_ptr_t>& classes) const;
+        bool read_instance_dump(hprof_section_reader& reader, u_int8_t id_size, std::vector<instance_info_impl_ptr_t>& objects) const;
+        bool read_objects_array_dump(hprof_section_reader& reader, u_int8_t id_size, std::vector<objects_array_info_impl_ptr_t>& objects) const;
+        bool read_primitives_array_dump(hprof_section_reader& reader, u_int8_t id_size, std::vector<primitives_array_info_impl_ptr_t>& objects) const;
+        bool read_gc_root(hprof_gc_tag_t subtype, hprof_section_reader& reader, std::vector<gc_root_impl_ptr_t>& roots) const;
+        bool prepare(heap_profile_data_t& data, heap_profile_impl_t& hprof) const;
     };
 }

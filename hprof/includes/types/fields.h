@@ -56,7 +56,7 @@ namespace hprof {
             return std::end(_fields);
         }
 
-        virtual fields_spec_t::iterator find(std::string name) const override {
+        virtual fields_spec_t::iterator find(const std::string& name) const override {
             for (auto it = std::begin(_fields); it != std::end(_fields); ++it) {
                 if (it->name() == name) {
                     return it;

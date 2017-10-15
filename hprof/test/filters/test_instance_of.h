@@ -23,6 +23,9 @@
 
 using namespace hprof;
 
+using testing::Return;
+using testing::ReturnRef;
+
 TEST(filter_instance_of_t, When_nullptr_Expect_NoMatch) {
     mock_objects_index_t objects;
     filter_instance_of_t filter { "com.android.View" };
@@ -31,9 +34,12 @@ TEST(filter_instance_of_t, When_nullptr_Expect_NoMatch) {
 
 TEST(filter_instance_of_t, When_NotInstance_Expect_NoMatch) {
     mock_objects_index_t objects;
-    mock_primitives_array_t array;
     filter_instance_of_t filter { "com.android.View" };
-    ASSERT_EQ(filter_t::NoMatch, filter(&array, objects));
+
+    auto item = std::make_shared<mock_heap_item_t>();
+    EXPECT_CALL(*item, type()).Times(1).WillOnce(Return(heap_item_t::PrimitivesArray));
+
+    ASSERT_EQ(filter_t::NoMatch, filter(item, objects));
 }
 
 TEST(filter_instance_of_t, When_DirectClassInstance_Expect_Match) {
@@ -45,8 +51,12 @@ TEST(filter_instance_of_t, When_DirectClassInstance_Expect_Match) {
     EXPECT_CALL(instance, get_class()).Times(1).WillOnce(Return(&cls));
     EXPECT_CALL(cls, name()).Times(1).WillOnce(ReturnRef(class_name));
 
+    auto item = std::make_shared<mock_heap_item_t>();
+    EXPECT_CALL(*item, type()).Times(1).WillOnce(Return(heap_item_t::Object));
+    EXPECT_CALL(*item, as_instance()).Times(1).WillOnce(Return(&instance));
+
     filter_instance_of_t filter { "com.android.View" };
-    ASSERT_EQ(filter_t::Match, filter(&instance, objects));
+    ASSERT_EQ(filter_t::Match, filter(item, objects));
 }
 
 TEST(filter_instance_of_t, When_SubClassInstance_Expect_Match) {
@@ -63,8 +73,12 @@ TEST(filter_instance_of_t, When_SubClassInstance_Expect_Match) {
     EXPECT_CALL(instance, get_class()).Times(1).WillOnce(Return(&cls));
     EXPECT_CALL(cls, super()).Times(1).WillOnce(Return(&super_cls));
 
+    auto item = std::make_shared<mock_heap_item_t>();
+    EXPECT_CALL(*item, type()).Times(1).WillOnce(Return(heap_item_t::Object));
+    EXPECT_CALL(*item, as_instance()).Times(1).WillOnce(Return(&instance));
+
     filter_instance_of_t filter { "com.android.View" };
-    ASSERT_EQ(filter_t::Match, filter(&instance, objects));
+    ASSERT_EQ(filter_t::Match, filter(item, objects));
 }
 
 TEST(filter_instance_of_t, When_NotInstanceOfClass_Expect_NoMatch) {
@@ -77,6 +91,10 @@ TEST(filter_instance_of_t, When_NotInstanceOfClass_Expect_NoMatch) {
     EXPECT_CALL(cls, name()).Times(1).WillOnce(ReturnRef(class_name));
     EXPECT_CALL(cls, super()).Times(1).WillOnce(Return(nullptr));
 
+    auto item = std::make_shared<mock_heap_item_t>();
+    EXPECT_CALL(*item, type()).Times(1).WillOnce(Return(heap_item_t::Object));
+    EXPECT_CALL(*item, as_instance()).Times(1).WillOnce(Return(&instance));
+
     filter_instance_of_t filter { "com.android.View" };
-    ASSERT_EQ(filter_t::NoMatch, filter(&instance, objects));
+    ASSERT_EQ(filter_t::NoMatch, filter(item, objects));
 }

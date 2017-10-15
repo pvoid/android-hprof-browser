@@ -18,12 +18,11 @@
 #include <gtest/gtest.h>
 #include "types/class.h"
 
+#include "mocks.h"
+
 using namespace hprof;
 
-TEST(class_info_impl_t, When_Always_Expect_TypeIsClass) {
-    auto cls = class_info_impl_t::create(4, 1000, 0);
-    ASSERT_EQ(object_info_t::TYPE_CLASS, cls->type());
-}
+using testing::Return;
 
 TEST(class_info_impl_t, When_SetSuperId300_Expect_ReturnSameSuperId300) {
     auto cls = class_info_impl_t::create(4, 1000, 0);
@@ -38,9 +37,11 @@ TEST(class_info_impl_t, When_SuperIdIsNotSet_Expect_Return0) {
 
 TEST(class_info_impl_t, When_SetSuper_Expect_ReturnSameSuper) {
     auto cls = class_info_impl_t::create(4, 1000, 0);
-    auto super = class_info_impl_t::create(6, 1002, 0);
-    cls->set_super_class(super);
-    ASSERT_EQ(super.get(), cls->super());
+    mock_class_info_t super;
+    auto item = std::make_shared<mock_heap_item_t>();
+    EXPECT_CALL(*item, as_class()).Times(1).WillOnce(Return(&super));
+    cls->set_super_class(item);
+    ASSERT_EQ(&super, cls->super());
 }
 
 TEST(class_info_impl_t, When_SuperIsNotSet_Expect_ReturnNull) {

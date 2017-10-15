@@ -28,13 +28,13 @@ namespace hprof {
         };
     public:
         virtual ~filter_t() {}
-        virtual filter_result_t operator()(const object_info_t* object, const objects_index_t& objects) const = 0;
+        virtual filter_result_t operator()(const heap_item_ptr_t& item, const objects_index_t& objects) const = 0;
     };
 
     class filter_fetch_all_t : public filter_t {
     public:
         virtual ~filter_fetch_all_t() {}
-        virtual filter_result_t operator()(const object_info_t* object, const objects_index_t& objects) const override {
+        virtual filter_result_t operator()(const heap_item_ptr_t&, const objects_index_t&) const override {
             return Match;
         }
     };
@@ -44,12 +44,12 @@ namespace hprof {
         explicit filter_by_field_t(field_fetcher_t *fetcher) : _field_fetcher(fetcher) {}
         virtual ~filter_by_field_t() {}
 
-        virtual filter_result_t operator()(const object_info_t* object, const objects_index_t& objects) const override {
-            if (object->type() != object_info_t::TYPE_INSTANCE) {
+        virtual filter_result_t operator()(const heap_item_ptr_t& item, const objects_index_t& objects) const override {
+            if (item->type() != heap_item_t::Object && item->type() != heap_item_t::String) {
                 return NoMatch;
             }
 
-            if (_field_fetcher->apply(object, objects, [this, &objects] (auto& field) -> bool { return match(field, objects); })) {
+            if (_field_fetcher->apply(item, objects, [this, &objects] (auto& field) -> bool { return match(field, objects); })) {
                 return Match;
             }
 

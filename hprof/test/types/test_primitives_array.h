@@ -31,11 +31,6 @@ TEST(primitives_array_info_impl_t, When_CreateWithLength10_Expect_LengthReturns1
     ASSERT_EQ(10, instance->length());
 }
 
-TEST(primitives_array_info_impl_t, When_Always_Expect_TypeIsPrimitiveArray) {
-    auto instance = primitives_array_info_impl_t::create(4, 0xc0f060, jvm_type_t::JVM_TYPE_BYTE, 0, 0);
-    ASSERT_EQ(object_info_t::TYPE_PRIMITIVES_ARRAY, instance->type());
-}
-
 TEST(primitives_array_info_impl_t, When_Always_Expect_HasLinkIs0) {
     auto instance = primitives_array_info_impl_t::create(4, 0xc0f060, jvm_type_t::JVM_TYPE_BYTE, 0, 0);
     ASSERT_EQ(0, instance->has_link_to(10));

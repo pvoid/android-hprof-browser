@@ -23,25 +23,33 @@ namespace hprof {
         explicit filter_classname_t(const char* name) : _name(name) {}
         explicit filter_classname_t(const std::string& name) : _name(name) {}
         virtual ~filter_classname_t() {}
-        virtual filter_result_t operator()(const object_info_t* object, const objects_index_t& objects) const override {
-            bool result = false;
-            switch (object->type()) {
-                case object_info_t::TYPE_INSTANCE:
-                    result = dynamic_cast<const instance_info_t*>(object)->get_class()->name_matches(_name) == 0;
+        virtual filter_result_t operator()(const heap_item_ptr_t& item, const objects_index_t&) const override {
+            if (item == nullptr) {
+                return NoMatch;
+            }
+
+           const class_info_t *cls = nullptr;
+            switch (item->type()) {
+                case heap_item_t::Object:
+                    cls = static_cast<const instance_info_t *>(*item)->get_class();
                     break;
-                case object_info_t::TYPE_CLASS:
-                    result = dynamic_cast<const class_info_t*>(object)->name_matches(_name) == 0;
+                case heap_item_t::Class:
+                    cls = static_cast<const class_info_t *>(*item);
                     break;
-                case object_info_t::TYPE_STRING:
+                case heap_item_t::String:
                     return _name.match( name_tokens { "java.lang.String" }) == 0 ? Match : NoMatch;
-                case object_info_t::TYPE_OBJECTS_ARRAY:
-                case object_info_t::TYPE_PRIMITIVES_ARRAY:
+                case heap_item_t::PrimitivesArray:
+                case heap_item_t::ObjectsArray:
                     break;
             }
-            return result ? Match : NoMatch;
+            
+            if (cls == nullptr) {
+                return NoMatch;
+            }
+
+            return cls->name_matches(_name) == 0 ? Match : NoMatch;
         }
     private:
         name_tokens _name;
     };
 }
-    
