@@ -43,11 +43,26 @@ namespace hprof {
             auto it = std::begin(_fields);
             heap_item_ptr_t item = object;
             for (;;) {
-                if (item == nullptr || (item->type() != heap_item_t::Object && item->type() != heap_item_t::String)) {
+                const instance_info_t* instance = nullptr;
+
+                if (item == nullptr) {
                     return false;
                 }
 
-                auto& fields = static_cast<const instance_info_t*>(*item)->fields();
+                switch(item->type()) {
+                    case heap_item_t::Object:
+                        instance = static_cast<const instance_info_t*>(*item);
+                        break;
+                    case heap_item_t::String:
+                        instance = static_cast<const string_info_t*>(*item);
+                        break;
+                    default:
+                        return false;
+                }
+
+                assert(instance != nullptr);
+
+                auto& fields = instance->fields();
                 auto field = fields.find(*it);
                 
                 if (field == std::end(fields)) {
