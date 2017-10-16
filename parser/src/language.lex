@@ -2,6 +2,8 @@
     #include "language_scanner.h"
     #include "language_parser.h"
 
+    #include <cstring>
+
     #define yyterminate() return hprof::language_parser::token::END
 
     using token_type = hprof::language_parser::token::yytokentype;
@@ -36,7 +38,11 @@
 [\n]+           { location->lines(yyleng); location->step(); }
 
 \'[^\n\']*\' |
-\"[^\n\"]*\"  { lval->strval = strdup(yytext + 1); lval->strval[yyleng - 2] = '\0'; return token::STRING; }
+\"[^\n\"]*\"    { lval->strval = new (std::nothrow) char[yyleng - 1]; 
+                  std::memcpy(lval->strval, yytext + 1, yyleng - 2); 
+                  lval->strval[yyleng - 2] = '\0'; 
+                  return token::STRING; 
+                }
 
 [0-9]+          { lval->intval = atoi(yytext); return token::INT; }
 
@@ -56,7 +62,10 @@ AND             { return token::AND; }
 OR              { return token::OR; }
 NOT             { return token::NOT; }
 
-[A-Za-z][A-Za-z0-9_]* { lval->strval = strdup(yytext); return token::NAME; }
+[A-Za-z][A-Za-z0-9_]* { lval->strval = new (std::nothrow) char[yyleng + 1];
+                        std::strcpy(lval->strval, yytext); 
+                        return token::NAME; 
+                      }
 
 "."             { return token::FIELD_ACCESS; }
 "="             { return token::EQUALS; }
