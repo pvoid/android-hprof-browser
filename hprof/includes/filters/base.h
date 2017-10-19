@@ -49,7 +49,7 @@ namespace hprof {
                 return NoMatch;
             }
 
-            if (_field_fetcher->apply(item, objects, [this, &objects] (auto& field) -> bool { return match(field, objects); })) {
+            if (_field_fetcher->apply(item, objects, [this, &objects] (auto& field) -> bool { return this->match(field, objects); })) {
                 return Match;
             }
 
