@@ -16,7 +16,7 @@
 cmake_minimum_required(VERSION 3.5)
 project(hprof-library C CXX)
 
-set(SOURCE_FILES 
+set(PROJECT_SOURCE_FILES 
     ${PROJECT_SOURCE_DIR}/src/types.cxx
     ${PROJECT_SOURCE_DIR}/src/types/class.cxx
     ${PROJECT_SOURCE_DIR}/src/types/gc_root.cxx
@@ -29,24 +29,27 @@ set(SOURCE_FILES
     ${PROJECT_SOURCE_DIR}/src/data_reader_factory.cxx
     ${PROJECT_SOURCE_DIR}/src/heap_profile.cxx
 )
-set(INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/includes/)
+set(PROJECT_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/includes/)
 
-add_library(${PROJECT_NAME} ${SOURCE_FILES})
-target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIRS})
+add_library(${PROJECT_NAME} ${PROJECT_SOURCE_FILES})
+target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_INCLUDE_DIRS})
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 14)
 
 set(${PROJECT_NAME}_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/includes/
     CACHE INTERNAL "${PROJECT_NAME}: Include Directories" FORCE)
 
-include_directories(${GTEST_INCLUDE_DIRS})
+set(PROJECT_TEST_SOURCE_FILES 
+    ${PROJECT_SOURCE_DIR}/test/main.cxx)
 
-set(TEST_SOURCE_FILES ${PROJECT_SOURCE_DIR}/test/main.cxx)
-set(TEST_INCLUDE_DIRS ${INCLUDE_DIRS} ${GTEST_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR}/test/)
+set(PROJECT_TEST_INCLUDE_DIRS $
+    ${PROJECT_INCLUDE_DIRS} 
+    ${GTEST_INCLUDE_DIRS} 
+    ${PROJECT_SOURCE_DIR}/test/)
 
+add_executable(${PROJECT_NAME}-test ${PROJECT_SOURCE_FILES} ${PROJECT_TEST_SOURCE_FILES})
 add_definitions(-DTEST_DATA_DIR="${PROJECT_SOURCE_DIR}/test-data")
-add_executable(${PROJECT_NAME}-test ${SOURCE_FILES} ${TEST_SOURCE_FILES})
-target_include_directories(${PROJECT_NAME}-test PRIVATE ${TEST_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME}-test ${CMAKE_THREAD_LIBS_INIT} gtest gmock)
+target_include_directories(${PROJECT_NAME}-test PRIVATE ${PROJECT_TEST_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME}-test ${CMAKE_THREAD_LIBS_INIT} ${GTEST_LIBRARIES} ${GMOCK_LIBRARIES})
 
 set_property(TARGET ${PROJECT_NAME}-test PROPERTY CXX_STANDARD 14)
 set_target_properties(${PROJECT_NAME}-test PROPERTIES COMPILE_FLAGS "-fprofile-arcs -ftest-coverage")

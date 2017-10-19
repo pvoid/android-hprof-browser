@@ -49,25 +49,32 @@ add_custom_command(
 
 set(CMAKE_CXX_FLAGS -fexceptions)
 set_directory_properties(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES
-"${PROJECT_SOURCE_DIR}/includes/generated/stack.hh;${PROJECT_SOURCE_DIR}/includes/generated/position.hh;${PROJECT_SOURCE_DIR}/includes/generated/location.hh;")
+    "${PROJECT_SOURCE_DIR}/includes/generated/stack.hh;"
+    "${PROJECT_SOURCE_DIR}/includes/generated/position.hh;"
+    "${PROJECT_SOURCE_DIR}/includes/generated/location.hh;")
 
-file(GLOB SOURCE_FILES ${PROJECT_SOURCE_DIR}/src/*.cxx)
-set(INCLUDE_DIRECTORIES )
+set(PARSER_LIBRARY_SOURCE_FILES
+    ${PROJECT_SOURCE_DIR}/src/language_driver.cxx)
 
-set(PARSER_LIBRARY_INLUDE_DIRS ${hprof-library_INCLUDE_DIRS} ${FLEX_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR}/includes/ ${PROJECT_SOURCE_DIR}/includes/generated/)
+set(PARSER_LIBRARY_INLUDE_DIRS 
+    ${hprof-library_INCLUDE_DIRS} 
+    ${FLEX_INCLUDE_DIRS} 
+    ${PROJECT_SOURCE_DIR}/includes/ 
+    ${PROJECT_SOURCE_DIR}/includes/generated/)
 
-add_library(${PROJECT_NAME} ${SOURCE_FILES} ${FLEX_OUTPUT} ${BISON_OUTPUT})
+add_library(${PROJECT_NAME} ${PARSER_LIBRARY_SOURCE_FILES} ${FLEX_OUTPUT} ${BISON_OUTPUT})
 target_link_libraries(${PROJECT_NAME} ${FLEX_LIBRARIES} ${BISON_LIBRARIES})
 target_include_directories(${PROJECT_NAME} PRIVATE ${PARSER_LIBRARY_INLUDE_DIRS})
-
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 14)
 
 set(${PROJECT_NAME}_INCLUDE_DIRS ${PARSER_LIBRARY_INLUDE_DIRS}
     CACHE INTERNAL "${PROJECT_NAME}: Include Directories" FORCE)
 
-file(GLOB TEST_SOURCE_FILES ${PROJECT_SOURCE_DIR}/test/*.cxx)
+set(PARSER_LIBRARY_TEST_SOURCE_FILES
+    ${PARSER_LIBRARY_SOURCE_FILES}
+    ${PROJECT_SOURCE_DIR}/test/main.cxx)
 
-add_executable(${PROJECT_NAME}-test ${SOURCE_FILES} ${FLEX_OUTPUT} ${BISON_OUTPUT} ${TEST_SOURCE_FILES})
+add_executable(${PROJECT_NAME}-test ${FLEX_OUTPUT} ${BISON_OUTPUT} ${PARSER_LIBRARY_TEST_SOURCE_FILES})
 target_include_directories(${PROJECT_NAME}-test PRIVATE ${PARSER_LIBRARY_INLUDE_DIRS} ${GTEST_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME}-test ${CMAKE_THREAD_LIBS_INIT} ${FLEX_LIBRARIES} ${BISON_LIBRARIES} hprof-library gtest)
 
