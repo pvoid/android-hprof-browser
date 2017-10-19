@@ -14,21 +14,27 @@
 #  limitations under the License.
 #
 cmake_minimum_required(VERSION 3.5)
-project(hprof-cli C CXX)
+project(hprof-browser C CXX)
+
+find_package(PkgConfig)
+pkg_check_modules(GTKMM gtkmm-3.0)
 
 set(PROJECT_SOURCE_FILES
     ${PROJECT_SOURCE_DIR}/src/main.cxx
-    ${PROJECT_SOURCE_DIR}/src/tools.cxx
+    ${PROJECT_SOURCE_DIR}/src/hprof_browser_application.cxx
+    ${PROJECT_SOURCE_DIR}/src/new_window.cxx
 )
 
 set(PROJECT_INCLUDE_DIRS
-    ${hprof-library_INCLUDE_DIRS}
-    ${hprof-parser_INCLUDE_DIRS}
+    ${hprof-library_INCLUDE_DIRS} 
+    ${hprof-parser_INCLUDE_DIRS} 
     ${PROJECT_SOURCE_DIR}/includes
+    ${GTKMM_INCLUDE_DIRS}
 )
 
 add_executable(${PROJECT_NAME} ${PROJECT_SOURCE_FILES})
-target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME} hprof-library hprof-parser)
-
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 14)
+target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME} hprof-library hprof-parser ${GTKMM_LIBRARIES})
+
+set(CMAKE_CXX_FLAGS -fexceptions)
