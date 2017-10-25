@@ -20,7 +20,7 @@
 namespace hprof {
     class value_reader_t {
     public:
-        value_reader_t(const u_int8_t* data, size_t size) : _data(data), _size(size) {} 
+        value_reader_t(const u_int8_t* data, size_t size) : _size(size), _data(data) {} 
         virtual ~value_reader_t() {}
 
         operator jvm_id_t() const {

@@ -15,26 +15,20 @@
 ///
 #pragma once
 
-#include "hprof.h"
+#include "actions.h"
+#include "storage.h"
 
 #include <memory>
-#include <string>
-#include <iostream>
 
 namespace hprof {
-    class file_t {
+    class EventsDisparcher {
     public:
-        explicit file_t(const std::string& name);
-        virtual ~file_t();
-
-        bool open(data_reader_factory_t& factory);
-        bool is_open() const { return _stream.is_open(); }
-        void close() { _stream.close(); }
-        std::unique_ptr<heap_profile_t> read_dump() const;
-    private:
-        std::string _file_name;
-        std::string _file_magic;
-        const data_reader_t* _reader;
-        mutable hprof_istream_t _stream;
+        virtual ~EventsDisparcher() = 0;
+        virtual void start() = 0;
+        virtual void stop() = 0;
+        virtual void subscribe(Storage* storage) = 0;
+        virtual void emit(std::unique_ptr<Action>&& action) = 0;
+    public:
+        static std::unique_ptr<EventsDisparcher> create();
     };
 }

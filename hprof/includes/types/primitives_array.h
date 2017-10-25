@@ -56,7 +56,7 @@ namespace hprof {
         class items_iterator {
         public:
             items_iterator(const u_int8_t* data, size_t data_size, jvm_type_t type, size_t id_size) : 
-                _offset(0), _data_size(data_size), _data(data), _type(type), _item_size(jvm_type_t::size(type, id_size)), _current(_data, _offset, _item_size, _type) {
+                _data_size(data_size), _offset(0), _data(data), _type(type), _item_size(jvm_type_t::size(type, id_size)), _current(_data, _offset, _item_size, _type) {
             }
 
             bool operator!=(const items_iterator& src) const { return _data + _offset != src._data + src._offset; }
@@ -117,8 +117,8 @@ namespace hprof {
         }
     private:
         primitives_array_info_impl_t(u_int8_t id_size, jvm_id_t id, jvm_type_t type, size_t length, size_t data_size) : 
-        object_info_impl_t(id_size, id), _data_size(data_size), _data(reinterpret_cast<u_int8_t*>(this) + sizeof(primitives_array_info_impl_t)), 
-        _length(length), _type(type) {}
+        object_info_impl_t(id_size, id), _data(reinterpret_cast<u_int8_t*>(this) + sizeof(primitives_array_info_impl_t)), 
+        _data_size(data_size), _length(length), _type(type) {}
     
     private:
         u_int8_t* _data;

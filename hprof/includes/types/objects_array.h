@@ -114,16 +114,15 @@ namespace hprof {
     public:
         static objects_array_info_impl_ptr_t create(u_int8_t id_size, jvm_id_t id, jvm_id_t class_id, size_t length, size_t data_size) {
             auto mem = new (std::nothrow) u_int8_t[sizeof(objects_array_info_impl_t) + data_size];
-            return objects_array_info_impl_ptr_t { new (mem) objects_array_info_impl_t(id_size, id, class_id, length, data_size) };
+            return objects_array_info_impl_ptr_t { new (mem) objects_array_info_impl_t(id_size, id, class_id, length) };
         }
     private:
-        objects_array_info_impl_t(u_int8_t id_size, jvm_id_t id, jvm_id_t class_id, size_t length, size_t data_size) :
+        objects_array_info_impl_t(u_int8_t id_size, jvm_id_t id, jvm_id_t class_id, size_t length) :
             object_info_impl_t(id_size, id), _class_id(class_id), _length(length), 
-            _data(reinterpret_cast<u_int8_t *>(this) + sizeof(objects_array_info_impl_t)), _data_size(data_size) {}
+            _data(reinterpret_cast<u_int8_t *>(this) + sizeof(objects_array_info_impl_t)) {}
     private:
         jvm_id_t _class_id;
         size_t _length;
         u_int8_t* _data;
-        size_t _data_size;
     };
 }

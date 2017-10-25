@@ -129,7 +129,7 @@ namespace hprof {
         } else {
             if (_tokens.size() > 1 && _tokens.size() >= token._tokens.size()) {
                 if (std::equal(std::begin(token._tokens), std::end(token._tokens), std::begin(_tokens),
-                    [this] (auto& left, auto& right) -> bool { return match(right, left) == 0; })) {
+                    [] (auto& left, auto& right) -> bool { return name_tokens::match(right, left) == 0; })) {
                     result = 0;
                 }
             }

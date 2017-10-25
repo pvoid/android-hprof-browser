@@ -17,9 +17,23 @@
 
 #include <gtkmm.h>
 
+#include "dispatcher.h"
+#include "hprof_storage.h"
+
 namespace hprof {
     class MainWindow : public Gtk::ApplicationWindow {
     public:
-        MainWindow();
+        MainWindow(EventsDisparcher& dispatcher, HprofStorage& hprof_storage);
+    private:
+        void on_hprof_start_load(const std::string& file_name);
+        void on_hprof_stop_load();
+    private:
+        EventsDisparcher& _dispatcher;
+        HprofStorage& _hprof_storage;
+
+        Gtk::HeaderBar _header_bar;
+        Gtk::Box _progress_box;
+        Gtk::ProgressBar _progress_bar;
+        // Gtk::Spinner _spinner;
     };
 }

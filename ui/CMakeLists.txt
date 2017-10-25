@@ -20,9 +20,12 @@ find_package(PkgConfig)
 pkg_check_modules(GTKMM gtkmm-3.0)
 
 set(PROJECT_SOURCE_FILES
-    ${PROJECT_SOURCE_DIR}/src/main.cxx
+    ${PROJECT_SOURCE_DIR}/src/dispatcher.cxx
+    ${PROJECT_SOURCE_DIR}/src/storage.cxx
+    ${PROJECT_SOURCE_DIR}/src/hprof_storage.cxx
     ${PROJECT_SOURCE_DIR}/src/hprof_browser_application.cxx
     ${PROJECT_SOURCE_DIR}/src/new_window.cxx
+    ${PROJECT_SOURCE_DIR}/src/main.cxx
 )
 
 set(PROJECT_INCLUDE_DIRS
@@ -35,6 +38,6 @@ set(PROJECT_INCLUDE_DIRS
 add_executable(${PROJECT_NAME} ${PROJECT_SOURCE_FILES})
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 14)
 target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME} hprof-library hprof-parser ${GTKMM_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} hprof-library hprof-parser ${GTKMM_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
 set(CMAKE_CXX_FLAGS -fexceptions)

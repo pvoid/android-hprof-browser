@@ -15,26 +15,13 @@
 ///
 #pragma once
 
-#include "hprof.h"
-
-#include <memory>
 #include <string>
-#include <iostream>
 
 namespace hprof {
-    class file_t {
+    class HprofDataManager {
     public:
-        explicit file_t(const std::string& name);
-        virtual ~file_t();
-
-        bool open(data_reader_factory_t& factory);
-        bool is_open() const { return _stream.is_open(); }
-        void close() { _stream.close(); }
-        std::unique_ptr<heap_profile_t> read_dump() const;
+        void load(const std::string& file_name);
     private:
-        std::string _file_name;
-        std::string _file_magic;
-        const data_reader_t* _reader;
-        mutable hprof_istream_t _stream;
+
     };
 }

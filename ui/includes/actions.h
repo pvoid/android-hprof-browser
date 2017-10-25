@@ -15,26 +15,22 @@
 ///
 #pragma once
 
-#include "hprof.h"
-
-#include <memory>
 #include <string>
-#include <iostream>
+#include <memory>
 
 namespace hprof {
-    class file_t {
-    public:
-        explicit file_t(const std::string& name);
-        virtual ~file_t();
+    struct Action {
+        enum action_type_t {
+            OpenFile
+        } type;
 
-        bool open(data_reader_factory_t& factory);
-        bool is_open() const { return _stream.is_open(); }
-        void close() { _stream.close(); }
-        std::unique_ptr<heap_profile_t> read_dump() const;
-    private:
-        std::string _file_name;
-        std::string _file_magic;
-        const data_reader_t* _reader;
-        mutable hprof_istream_t _stream;
+        Action(action_type_t action) : type(action) {}
+    };
+
+    struct OpenFileAction : public Action {
+        OpenFileAction(const std::string& file_name) : Action(OpenFile), file_name(file_name) {}
+        std::string file_name;
+
+        static std::unique_ptr<Action> create(const std::string& file_name) { return std::make_unique<OpenFileAction>(file_name); }
     };
 }

@@ -37,8 +37,10 @@ int main(int argc, char* argv[]) {
     }
 
     std::cout << "Loading heap dump from: " << argv[1] << std::endl;
-    file_t file { argv[1], data_reader_factory_t::create() };
-    if (!file.open()) {
+
+    auto reader_factory = data_reader_factory_t::create();
+    file_t file { argv[1] };
+    if (!file.open(*reader_factory)) {
         return -1;
     }
 
