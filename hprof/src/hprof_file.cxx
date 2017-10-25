@@ -17,36 +17,32 @@
 
 using namespace hprof;
 
-file_t::file_t(const std::string& name, std::unique_ptr<data_reader_factory_t>&& factory) : _file_name(name), _factory(std::move(factory)) {
+file_t::file_t(const std::string& name) : _file_name(name), _reader(nullptr) {
 }
 
 file_t::~file_t() {
 }
 
-bool file_t::open() {
+bool file_t::open(data_reader_factory_t& factory) {
     auto in = std::ifstream { _file_name, std::ios::binary };
     if (!in.is_open()) {
         return false;
     }
 
-    _file_magic = _factory->read_magic(in);
+    _file_magic = factory.read_magic(in);
     if (_file_magic.empty()) {
         return false;
     }
 
-    _stream = std::move(hprof_istream_t { std::move(in) });
-    return true;
+    _stream = hprof_istream_t { std::move(in) };
+    _reader = factory.reader(_file_magic);
+    return _reader != nullptr;
 }
 
 std::unique_ptr<heap_profile_t> file_t::read_dump() const {
-    if (!is_open() || _file_magic.empty()) {
+    if (!is_open() || _file_magic.empty() || _reader == nullptr) {
         return std::unique_ptr<heap_profile_t>();
     }
 
-    const data_reader_t* reader = _factory->reader(_file_magic);
-    if (reader == nullptr) {
-        return std::unique_ptr<heap_profile_t>();
-    }
-
-    return reader->build(_stream);
+    return _reader->build(_stream);
 }

@@ -420,7 +420,7 @@ bool data_reader_v103_t::read_instance_dump(hprof_section_reader& reader, u_int8
 // TODO: Refs http://androidxref.com/7.1.1_r6/xref/art/runtime/hprof/hprof.cc#1263
 bool data_reader_v103_t::read_objects_array_dump(hprof_section_reader& reader, u_int8_t id_size, std::vector<objects_array_info_impl_ptr_t>& objects) const {
     jvm_id_t object_id = reader.read_id();
-    int32_t stack_trace_id = reader.read_int32();
+    /*int32_t stack_trace_id =*/ reader.read_int32();
     size_t length = static_cast<size_t>(reader.read_int32());
     jvm_id_t class_id = reader.read_id();
 
@@ -441,7 +441,7 @@ bool data_reader_v103_t::read_objects_array_dump(hprof_section_reader& reader, u
 // NOTE: Ref: http://androidxref.com/7.1.1_r6/xref/art/runtime/hprof/hprof.cc#1283
 bool data_reader_v103_t::read_primitives_array_dump(hprof_section_reader& reader, u_int8_t id_size, std::vector<primitives_array_info_impl_ptr_t>& objects) const {
     jvm_id_t object_id = reader.read_id();
-    int32_t stack_trace_id = reader.read_int32();
+    /*  int32_t stack_trace_id =*/ reader.read_int32();
     size_t length = static_cast<size_t>(reader.read_int32());
     auto type = static_cast<hprof_type_t>(reader.read_byte());
 

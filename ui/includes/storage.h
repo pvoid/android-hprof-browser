@@ -15,23 +15,37 @@
 ///
 #pragma once
 
-#include <gtkmm.h>
-#include "hprof_storage.h"
-#include "main_window.h"
+#include "gtkmm.h"
+#include "actions.h"
+
+#include <mutex>
+#include <queue>
 
 namespace hprof {
-    class HprofBrowserApplication : public Gtk::Application {
+    class Storage {
     public:
-        HprofBrowserApplication();
+        virtual ~Storage() {}
+        virtual void emit(const Action& action) = 0;
+    };
+
+    struct StorageSignal {
+        int32_t signal;
+
+        StorageSignal(int32_t signal) : signal(signal) {}
+    };
+
+    class SignalsHelper {
+    public:
+        SignalsHelper();
+        virtual ~SignalsHelper();
     protected:
-        void on_startup() override;
-        void on_activate() override;
+        void send_signal(std::unique_ptr<StorageSignal>&& signal);
+        virtual void on_process_signal(const StorageSignal* signal) = 0;
     private:
-        void on_open_file();
-        void on_quit();
+        void on_emit_next_signal();
     private:
-        std::unique_ptr<EventsDisparcher> _dispatcher;
-        HprofStorage _hprof_storage;
-        MainWindow _main_window;
+        std::mutex _mutex;
+        std::queue<std::unique_ptr<StorageSignal>> _signals;
+        Glib::Dispatcher _dispatcher;
     };
 }

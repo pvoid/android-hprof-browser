@@ -43,7 +43,7 @@ string data_reader_factory_impl::read_magic(istream& in) const {
     result.reserve(MAX_MAGIC_LEN);
     char ch;
 
-    for (int index = 0; index <= MAX_MAGIC_LEN; ++index) {
+    for (size_t index = 0; index <= MAX_MAGIC_LEN; ++index) {
         in.get(ch);
 
         if (ch == '\0') {

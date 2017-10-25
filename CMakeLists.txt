@@ -17,7 +17,7 @@ cmake_minimum_required(VERSION 3.5)
 project(hprof-browser)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/tools/cmake/")
-set(CMAKE_CXX_FLAGS -fno-exceptions)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions")
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -37,6 +37,10 @@ if (NOT GENHTML)
     message(FATAL_ERROR "genhtml is not flound!")
 else()
     message("-- Found genhtml: ${GENHTML}")
+endif()
+
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
 endif()
 
 enable_testing()

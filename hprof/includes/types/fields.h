@@ -155,7 +155,7 @@ namespace hprof {
         class iterator {
         public:
             iterator(size_t id_size, std::vector<field_spec_impl_t>::const_iterator it, const u_int8_t* data) : 
-                _it(it), _fetch_value(true), _id_size(id_size), _data(data) {}
+                _id_size(id_size), _it(it), _data(data), _fetch_value(true) {}
             virtual ~iterator() {}
 
             bool operator==(const iterator& src) const { return _it == src._it; }

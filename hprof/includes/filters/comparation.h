@@ -148,7 +148,7 @@ namespace hprof {
         virtual ~filter_compare_less_field_t() {}
 
     protected:
-        virtual bool match(const field_value_t& field, const objects_index_t& objects) const {
+        virtual bool match(const field_value_t& field, const objects_index_t&) const {
             switch (field.type()) {
                 case jvm_type_t::JVM_TYPE_UNKNOWN:
                 case jvm_type_t::JVM_TYPE_BOOL:
@@ -178,7 +178,7 @@ namespace hprof {
         virtual ~filter_compare_less_or_equals_field_t() {}
 
     protected:
-        virtual bool match(const field_value_t& field, const objects_index_t& objects) const {
+        virtual bool match(const field_value_t& field, const objects_index_t&) const {
             switch (field.type()) {
                 case jvm_type_t::JVM_TYPE_UNKNOWN:
                 case jvm_type_t::JVM_TYPE_BOOL:
@@ -208,7 +208,7 @@ namespace hprof {
         virtual ~filter_compare_greater_field_t() {}
 
     protected:
-        virtual bool match(const field_value_t& field, const objects_index_t& objects) const {
+        virtual bool match(const field_value_t& field, const objects_index_t&) const {
             switch (field.type()) {
                 case jvm_type_t::JVM_TYPE_UNKNOWN:
                 case jvm_type_t::JVM_TYPE_BOOL:
@@ -238,7 +238,7 @@ namespace hprof {
         virtual ~filter_compare_greater_or_equals_field_t() {}
 
     protected:
-        virtual bool match(const field_value_t& field, const objects_index_t& objects) const {
+        virtual bool match(const field_value_t& field, const objects_index_t&) const {
             switch (field.type()) {
                 case jvm_type_t::JVM_TYPE_UNKNOWN:
                 case jvm_type_t::JVM_TYPE_BOOL:
