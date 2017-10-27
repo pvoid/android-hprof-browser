@@ -30,25 +30,33 @@ using std::chrono::milliseconds;
 using namespace hprof;
 
 int main(int argc, char* argv[]) {
-
+    
     if (argc == 1) {
         std::cerr << "Specify hprof file name" << std::endl;
         return -1;
     }
-
+    
+    auto start = steady_clock::now();
     std::cout << "Loading heap dump from: " << argv[1] << std::endl;
 
     auto reader_factory = data_reader_factory_t::create();
     file_t file { argv[1] };
-    if (!file.open(*reader_factory)) {
-        return -1;
-    }
+    auto hprof = file.read_dump(*reader_factory, [] (auto phase, auto progress) { 
+        switch (phase) {
+            case file_t::PHASE_READ:
+                std::cout << "Reading...";
+                break;
+            case file_t::PHASE_PREPARE:
+                std::cout << "Preparing...";
+                break;
+            case file_t::PHASE_ANALYZE:
+                std::cout << "Analyzing...";
+                break;
+        }
+        std::cout << " " << progress << "%                                    \r"; 
+    });
 
-    auto start = steady_clock::now();
-
-    auto hprof = file.read_dump();
-    file.close();
-
+    std::cout << std::endl;
     auto spent_time = steady_clock::now() - start;
 
     std::cout << "Heap dump lodaded in " << duration_cast<seconds>(spent_time).count() << "s "

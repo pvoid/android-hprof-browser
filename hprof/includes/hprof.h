@@ -25,6 +25,7 @@
 #include "filters/comparation.h"
 
 #include <chrono>
+#include <functional>
 
 namespace hprof {
 
@@ -51,8 +52,10 @@ namespace hprof {
 
     class data_reader_t {
     public:
+        using progress_callback = std::function<void(u_int32_t done, u_int32_t total)>;
+    public:
         virtual ~data_reader_t() {}
-        virtual std::unique_ptr<heap_profile_t> build(hprof_istream_t&) const = 0;
+        virtual std::unique_ptr<heap_profile_t> build(hprof_istream_t&, const progress_callback& callback) const = 0;
     };
 
     class data_reader_factory_t {

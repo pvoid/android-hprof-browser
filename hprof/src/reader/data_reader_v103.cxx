@@ -76,7 +76,7 @@ static jvm_type_t to_jvm_type(hprof_type_t type) {
     return jvm_type_t::JVM_TYPE_UNKNOWN;
 }
 
-unique_ptr<heap_profile_t> data_reader_v103_t::build(hprof_istream_t& in) const {
+unique_ptr<heap_profile_t> data_reader_v103_t::build(hprof_istream_t& in, const progress_callback& callback) const {
     heap_profile_data_t data;
     // Read id size
     data.id_size = static_cast<u_int8_t>(in.read_int32());
@@ -118,7 +118,7 @@ unique_ptr<heap_profile_t> data_reader_v103_t::build(hprof_istream_t& in) const 
     } while(read_result != DONE);
 
     auto result = std::make_unique<heap_profile_impl_t>(std::move(data.gc_roots));
-    if (!prepare(data, *result)) return std::make_unique<heap_profile_impl_t>("Error occuried while perapring data");
+    if (!prepare(data, *result, callback)) return std::make_unique<heap_profile_impl_t>("Error occuried while perapring data");
     return result;
 }
 
@@ -616,9 +616,12 @@ bool data_reader_v103_t::read_gc_root(hprof_gc_tag_t subtype, hprof_section_read
 }
 
 // TODO: set roots for objects
-bool data_reader_v103_t::prepare(heap_profile_data_t& data, heap_profile_impl_t& hprof) const {
+bool data_reader_v103_t::prepare(heap_profile_data_t& data, heap_profile_impl_t& hprof, const progress_callback& callback) const {
     jvm_id_t string_class_id = 0;
+    const u_int32_t total = data.classes.size() * 2 + data.primitives_arrays.size() + data.objects_arrays.size() + data.instances.size();
+    u_int32_t ready = 0;
 
+    callback(ready, total);
     std::vector<heap_item_impl_ptr_t> classes;
     // Attach class name to each class and build map
     for (auto& klass : data.classes) {
@@ -638,6 +641,8 @@ bool data_reader_v103_t::prepare(heap_profile_data_t& data, heap_profile_impl_t&
         classes.push_back(ptr);
 
         hprof.add(id, ptr);
+
+        callback(++ready, total);
     }
 
     // Attach super class
@@ -650,11 +655,14 @@ bool data_reader_v103_t::prepare(heap_profile_data_t& data, heap_profile_impl_t&
         if (super == nullptr) continue;
 
         cls->set_super_class(super);
+
+        callback(++ready, total);
     }
 
     for (auto& array : data.primitives_arrays) {
         jvm_id_t id = array->id();
         hprof.add(id, std::make_shared<heap_item_impl_t>(std::move(array)));
+        callback(++ready, total);
     }
 
     // Attach classes to instances and store items
@@ -672,12 +680,15 @@ bool data_reader_v103_t::prepare(heap_profile_data_t& data, heap_profile_impl_t&
         } else {
             hprof.add(id, std::make_shared<heap_item_impl_t>(std::move(object)));
         }
+        callback(++ready, total);
     }
 
     for (auto& array : data.objects_arrays) {
         jvm_id_t id = array->id();
         hprof.add(id, std::make_shared<heap_item_impl_t>(std::move(array)));
+        callback(++ready, total);
     }
 
+    callback(++ready, total);
     return true;
 }

@@ -14,35 +14,47 @@
 ///  limitations under the License.
 ///
 #include "hprof_file.h"
+#include <limits>
 
 using namespace hprof;
 
-file_t::file_t(const std::string& name) : _file_name(name), _reader(nullptr) {
+file_t::file_t(const std::string& name) : _file_name(name) {
 }
 
 file_t::~file_t() {
 }
 
-bool file_t::open(data_reader_factory_t& factory) {
+std::unique_ptr<heap_profile_t> file_t::read_dump(const data_reader_factory_t& factory, const progress_callback& callback) const {
     auto in = std::ifstream { _file_name, std::ios::binary };
     if (!in.is_open()) {
-        return false;
+        return nullptr;
     }
 
-    _file_magic = factory.read_magic(in);
-    if (_file_magic.empty()) {
-        return false;
+    auto file_magic = factory.read_magic(in);
+    if (file_magic.empty()) {
+        return nullptr;
     }
 
-    _stream = hprof_istream_t { std::move(in) };
-    _reader = factory.reader(_file_magic);
-    return _reader != nullptr;
-}
+    size_t read_progress = std::numeric_limits<size_t>::max();
+    auto stream = hprof_istream_t { std::move(in), [&callback, &read_progress] (auto done, auto total) { 
+        auto progress = done * 100 / total;
+        if (read_progress != progress) {
+            read_progress = progress;
+            callback(PHASE_READ, read_progress);
+        }
+    }};
+    auto reader = factory.reader(file_magic);
 
-std::unique_ptr<heap_profile_t> file_t::read_dump() const {
-    if (!is_open() || _file_magic.empty() || _reader == nullptr) {
-        return std::unique_ptr<heap_profile_t>();
+    if (reader == nullptr) {
+        return nullptr;
     }
 
-    return _reader->build(_stream);
+    u_int32_t prepare_progress = std::numeric_limits<u_int32_t>::max();
+    return reader->build(stream, [&callback, &prepare_progress] (auto done, auto total) {
+        auto progress = done * 100 / total;
+        if (prepare_progress != progress) {
+            prepare_progress = progress;
+            callback(PHASE_PREPARE, prepare_progress);
+        }
+    });
 }
