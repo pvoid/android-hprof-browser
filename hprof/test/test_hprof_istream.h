@@ -16,10 +16,11 @@
 #include <gtest/gtest.h>
 #include "hprof_istream.h"
 
+auto g_empty_callback = [] (auto, auto) {};
+
 TEST(hprof_istream_t, When_ReadChar_Expect_NextByteValue) {
     std::ifstream data { TEST_DATA_DIR "/istream-char-data.bin", std::ios::binary };
-
-    hprof_istream_t in { std::move(data) };
+    hprof_istream_t in { std::move(data), g_empty_callback };
 
     ASSERT_EQ(0x10, in.read_char());
     ASSERT_FALSE(in.eof());
@@ -34,10 +35,22 @@ TEST(hprof_istream_t, When_ReadChar_Expect_NextByteValue) {
     ASSERT_TRUE(in.eof());
 }
 
+TEST(hprof_istream_t, When_ReadChar_Expect_OneByteCounted) {
+    std::ifstream data { TEST_DATA_DIR "/istream-char-data.bin", std::ios::binary };
+    size_t total = 0;
+    size_t read = 0;
+    hprof_istream_t in { std::move(data), [&total, &read] (auto done, auto size) { total = size; read = done; } };
+
+    in.read_char();
+
+    ASSERT_EQ(1, read);
+    ASSERT_EQ(3, total);
+}
+
 TEST(hprof_istream_t, When_ReadByte_Expect_NextByteValue) {
     std::ifstream data { TEST_DATA_DIR "/istream-char-data.bin", std::ios::binary };
 
-    hprof_istream_t in { std::move(data) };
+    hprof_istream_t in { std::move(data), g_empty_callback };
 
     ASSERT_EQ(0x10, in.read_byte());
     ASSERT_FALSE(in.eof());
@@ -52,10 +65,22 @@ TEST(hprof_istream_t, When_ReadByte_Expect_NextByteValue) {
     ASSERT_TRUE(in.eof());
 }
 
+TEST(hprof_istream_t, When_ReadByte_Expect_OneByteCounted) {
+    std::ifstream data { TEST_DATA_DIR "/istream-char-data.bin", std::ios::binary };
+    size_t total = 0;
+    size_t read = 0;
+    hprof_istream_t in { std::move(data), [&total, &read] (auto done, auto size) { total = size; read = done; } };
+
+    in.read_byte();
+
+    ASSERT_EQ(1, read);
+    ASSERT_EQ(3, total);
+}
+
 TEST(hprof_istream_t, When_ReadShort_Expect_NextTwoBytesValue) {
     std::ifstream data { TEST_DATA_DIR "/istream-char-data.bin", std::ios::binary };
 
-    hprof_istream_t in { std::move(data) };
+    hprof_istream_t in { std::move(data), g_empty_callback };
 
     ASSERT_EQ(0x100a, in.read_int16());
     ASSERT_FALSE(in.eof());
@@ -65,10 +90,22 @@ TEST(hprof_istream_t, When_ReadShort_Expect_NextTwoBytesValue) {
     ASSERT_TRUE(in.eof());
 }
 
+TEST(hprof_istream_t, When_ReadInt16_Expect_TwoByteCounted) {
+    std::ifstream data { TEST_DATA_DIR "/istream-char-data.bin", std::ios::binary };
+    size_t total = 0;
+    size_t read = 0;
+    hprof_istream_t in { std::move(data), [&total, &read] (auto done, auto size) { total = size; read = done; } };
+
+    in.read_int16();
+
+    ASSERT_EQ(2, read);
+    ASSERT_EQ(3, total);
+}
+
 TEST(hprof_istream_t, When_NotEnoughDataForInt_Expect_Zero) {
     std::ifstream data { TEST_DATA_DIR "/istream-char-data.bin", std::ios::binary };
 
-    hprof_istream_t in { std::move(data) };
+    hprof_istream_t in { std::move(data), g_empty_callback };
 
     ASSERT_EQ(0x0, in.read_int32());
     ASSERT_TRUE(in.eof());
@@ -77,7 +114,7 @@ TEST(hprof_istream_t, When_NotEnoughDataForInt_Expect_Zero) {
 TEST(hprof_istream_t, When_OneByteIntValue_Expect_NextIntValue) {
     std::ifstream data { TEST_DATA_DIR "/istream-int-small-data.bin", std::ios::binary };
 
-    hprof_istream_t in { std::move(data) };
+    hprof_istream_t in { std::move(data), g_empty_callback };
 
     ASSERT_EQ(0x18, in.read_int32());
     ASSERT_FALSE(in.eof());
@@ -89,7 +126,7 @@ TEST(hprof_istream_t, When_OneByteIntValue_Expect_NextIntValue) {
 TEST(hprof_istream_t, When_FourBytesIntValue_Expect_NextIntValue) {
     std::ifstream data { TEST_DATA_DIR "/istream-int-data.bin", std::ios::binary };
 
-    hprof_istream_t in { std::move(data) };
+    hprof_istream_t in { std::move(data), g_empty_callback };
 
     ASSERT_EQ(0xffffff04, in.read_int32());
     ASSERT_FALSE(in.eof());
@@ -98,10 +135,22 @@ TEST(hprof_istream_t, When_FourBytesIntValue_Expect_NextIntValue) {
     ASSERT_TRUE(in.eof());
 }
 
+TEST(hprof_istream_t, When_ReadInt32_Expect_FourByteCounted) {
+    std::ifstream data { TEST_DATA_DIR "/istream-int-data.bin", std::ios::binary };
+    size_t total = 0;
+    size_t read = 0;
+    hprof_istream_t in { std::move(data), [&total, &read] (auto done, auto size) { total = size; read = done; } };
+
+    in.read_int32();
+
+    ASSERT_EQ(4, read);
+    ASSERT_EQ(4, total);
+}
+
 TEST(hprof_istream_t, When_NotEnoughDataForLong_Expect_Zero) {
     std::ifstream data { TEST_DATA_DIR "/istream-int-data.bin", std::ios::binary };
 
-    hprof_istream_t in { std::move(data) };
+    hprof_istream_t in { std::move(data), g_empty_callback };
 
     ASSERT_EQ(0x0, in.read_int64());
     ASSERT_TRUE(in.eof());
@@ -110,7 +159,7 @@ TEST(hprof_istream_t, When_NotEnoughDataForLong_Expect_Zero) {
 TEST(hprof_istream_t, When_OneByteLongValue_Expect_NextLongValue) {
     std::ifstream data { TEST_DATA_DIR "/istream-long-small-data.bin", std::ios::binary };
 
-    hprof_istream_t in { std::move(data) };
+    hprof_istream_t in { std::move(data), g_empty_callback };
 
     ASSERT_EQ(0x12, in.read_int64());
     ASSERT_FALSE(in.eof());
@@ -122,7 +171,7 @@ TEST(hprof_istream_t, When_OneByteLongValue_Expect_NextLongValue) {
 TEST(hprof_istream_t, When_FourBytesLongValue_Expect_NextLongValue) {
     std::ifstream data { TEST_DATA_DIR "/istream-long-data.bin", std::ios::binary };
 
-    hprof_istream_t in { std::move(data) };
+    hprof_istream_t in { std::move(data), g_empty_callback };
 
     ASSERT_EQ(0xffffffffffffffc0, in.read_int64());
     ASSERT_FALSE(in.eof());
@@ -131,10 +180,23 @@ TEST(hprof_istream_t, When_FourBytesLongValue_Expect_NextLongValue) {
     ASSERT_TRUE(in.eof());
 }
 
+TEST(hprof_istream_t, When_ReadInt64_Expect_EightByteCounted) {
+    std::ifstream data { TEST_DATA_DIR "/istream-long-data.bin", std::ios::binary };
+    size_t total = 0;
+    size_t read = 0;
+    hprof_istream_t in { std::move(data), [&total, &read] (auto done, auto size) { total = size; read = done; } };
+
+    in.read_int64();
+
+    ASSERT_EQ(8, read);
+    ASSERT_EQ(8, total);
+}
+
+
 TEST(hprof_istream_t, When_ReadSpecifiedBytesAmount_Expect_FillArrayByData) {
     std::ifstream data { TEST_DATA_DIR "/istream-char-data.bin", std::ios::binary };
 
-    hprof_istream_t in { std::move(data) };
+    hprof_istream_t in { std::move(data), g_empty_callback };
 
     u_int8_t bytes[3] = {0};
 
@@ -148,7 +210,7 @@ TEST(hprof_istream_t, When_ReadSpecifiedBytesAmount_Expect_FillArrayByData) {
 TEST(hprof_istream_t, When_ReadNotSpecifiedBytesAmount_Expect_FillArrayByData) {
     std::ifstream data { TEST_DATA_DIR "/istream-char-data.bin", std::ios::binary };
 
-    hprof_istream_t in { std::move(data) };
+    hprof_istream_t in { std::move(data), g_empty_callback };
 
     u_int8_t bytes[3] = {0};
 
@@ -162,8 +224,7 @@ TEST(hprof_istream_t, When_ReadNotSpecifiedBytesAmount_Expect_FillArrayByData) {
 
 TEST(hprof_istream_t, When_NotEnoughData_Expect_ZeroBytesRead) {
     std::ifstream data { TEST_DATA_DIR "/istream-char-data.bin", std::ios::binary };
-
-    hprof_istream_t in { std::move(data) };
+    hprof_istream_t in { std::move(data), g_empty_callback };
 
     u_int8_t bytes[4] = {0};
 

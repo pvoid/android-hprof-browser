@@ -16,12 +16,20 @@
 #pragma once
 
 #include <fstream>
+#include <functional>
 
 class hprof_istream_t {
 public:
-    hprof_istream_t() {}
+    using progress_listener = std::function<void(size_t, size_t)>;
+public:
+    hprof_istream_t(std::ifstream&& in, progress_listener&& listener) : 
+                        _stream(std::move(in)), _listener(std::move(listener)), _file_size(0), _read(0) {
+        _read = _stream.tellg();
+        _stream.seekg(0, std::ios_base::end);
+        _file_size = _stream.tellg();
+        _stream.seekg(_read);
+    }
 
-    explicit hprof_istream_t(std::ifstream&& in) : _stream(std::move(in)) {}
     ~hprof_istream_t() {
         _stream.close();
     }
@@ -43,11 +51,13 @@ public:
     u_int8_t read_byte() {
         char data = 0;
         _stream.get(data);
+        change_read_count(1);
         return static_cast<u_int8_t>(data);
     }
 
     char read_char() {
         char data = 0;
+        change_read_count(1);
         _stream.get(data);
         return data;
     }
@@ -89,9 +99,26 @@ public:
 
     size_t read_bytes(u_int8_t* buff, size_t size) {
         _stream.read(reinterpret_cast<char *>(buff), size);
-        return _stream.good() ? size : 0;
+        auto count = _stream.good() ? size : 0;
+        change_read_count(count);
+        return count;
     }
 
+    size_t stream_size() const {
+        return _file_size;
+    }
+
+    size_t stream_read() const {
+        return _read;
+    }
+private:
+    void change_read_count(size_t size) {
+        _read += size;
+        _listener(_read, _file_size);
+    }
 private:
     std::ifstream _stream;
+    progress_listener _listener;
+    size_t _file_size;
+    size_t _read;
 };

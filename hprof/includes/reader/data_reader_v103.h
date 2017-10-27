@@ -32,7 +32,7 @@ namespace hprof {
     public:
         data_reader_v103_t() {}
         virtual ~data_reader_v103_t() {}
-        virtual std::unique_ptr<heap_profile_t> build(hprof_istream_t& in) const override;
+        virtual std::unique_ptr<heap_profile_t> build(hprof_istream_t& in, const progress_callback& callback) const override;
     private:
         enum hprof_tag_t : u_int8_t {
             TAG_UTF8_STRING = 0x01,
@@ -212,6 +212,6 @@ namespace hprof {
         bool read_objects_array_dump(hprof_section_reader& reader, u_int8_t id_size, std::vector<objects_array_info_impl_ptr_t>& objects) const;
         bool read_primitives_array_dump(hprof_section_reader& reader, u_int8_t id_size, std::vector<primitives_array_info_impl_ptr_t>& objects) const;
         bool read_gc_root(hprof_gc_tag_t subtype, hprof_section_reader& reader, std::vector<gc_root_impl_ptr_t>& roots) const;
-        bool prepare(heap_profile_data_t& data, heap_profile_impl_t& hprof) const;
+        bool prepare(heap_profile_data_t& data, heap_profile_impl_t& hprof, const progress_callback& callback) const;
     };
 }

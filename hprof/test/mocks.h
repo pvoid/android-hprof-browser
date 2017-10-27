@@ -46,7 +46,7 @@ public:
 };
 
 class mock_fields_iterator_helper_t {
-    friend class iterator_impl_matcher_t;
+    friend struct iterator_impl_matcher_t;
 public:
     explicit mock_fields_iterator_helper_t(mock_fields_iterator_t* impl) : _impl(impl) {}
 

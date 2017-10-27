@@ -44,6 +44,7 @@ MainWindow::MainWindow(EventsDisparcher& dispatcher, HprofStorage& hprof_storage
     root_box->pack_start(_progress_box, Gtk::PACK_EXPAND_WIDGET);
 
     _hprof_storage.on_start_loading().connect(sigc::mem_fun1(*this, &MainWindow::on_hprof_start_load));
+    _hprof_storage.on_progress_loading().connect(sigc::mem_fun2(*this, &MainWindow::on_hprof_loading_progress));
     _hprof_storage.on_stop_loading().connect(sigc::mem_fun(*this, &MainWindow::on_hprof_stop_load));
 }
 
@@ -62,4 +63,9 @@ void MainWindow::on_hprof_start_load(const std::string& file_name) {
 
 void MainWindow::on_hprof_stop_load() {
     _progress_box.hide();
+}
+
+void MainWindow::on_hprof_loading_progress(const std::string& action, double fraction) {
+    _progress_bar.set_text(action);
+    _progress_bar.set_fraction(fraction);
 }
