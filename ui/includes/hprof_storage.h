@@ -18,10 +18,12 @@
 #include "storage.h"
 #include "hprof.h"
 #include "hprof_file.h"
+#include "language_driver.h"
 
 #include <gtkmm.h>
 #include <memory>
 #include <mutex>
+#include <vector>
 #include <condition_variable>
 
 namespace hprof {
@@ -30,6 +32,7 @@ namespace hprof {
         using type_signal_start_loading = sigc::signal<void, const std::string&>;
         using type_signal_progress_loading = sigc::signal<void, const std::string&, double>;
         using type_signal_stop_loading = sigc::signal<void>;
+        using type_signal_query_succeed = sigc::signal<void, const std::vector<heap_item_ptr_t>&, u_int64_t>;
     public:
         HprofStorage(std::unique_ptr<data_reader_factory_t>&& factory);
         virtual ~HprofStorage();
@@ -38,18 +41,22 @@ namespace hprof {
         type_signal_start_loading on_start_loading() { return _signal_start_loading; }
         type_signal_progress_loading on_progress_loading() { return _signal_progress_loading; }
         type_signal_stop_loading on_stop_loading() { return _signal_stop_loading;  }
+        type_signal_query_succeed on_query_succeed() { return _signal_query_succeed; }
     protected:
         void on_process_signal(const StorageSignal* signal);
     private:
         void load_hprof(const OpenFileAction* action);
+        void execute_query(const ExecuteQueryAction* action);
         void on_loading_progress(file_t::phase_t phase, u_int32_t progress);
     private:
-        // std::mutex _mutex;
-        // std::condition_variable _condition;
         std::unique_ptr<data_reader_factory_t> _reader_factory;
         std::unique_ptr<heap_profile_t> _heap_profile;
+        language_driver _query_parser;
+
+        // signals
         type_signal_start_loading _signal_start_loading;
         type_signal_progress_loading _signal_progress_loading;
         type_signal_stop_loading _signal_stop_loading;
+        type_signal_query_succeed _signal_query_succeed;
     };
 }

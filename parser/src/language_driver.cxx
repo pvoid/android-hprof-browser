@@ -41,10 +41,12 @@ void language_driver::filter(filter_t* filter) {
     _query.filter.reset(filter);
 }
 
+// TODO: store errors
 void language_driver::error (const hprof::location& loc, const std::string& msg) {
     std::cerr << loc << ": " << msg << std::endl;
 }
 
+// TODO: store errors
 void language_driver::error (const std::string& msg) {
     std::cerr << msg << std::endl;
 }

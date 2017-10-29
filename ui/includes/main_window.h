@@ -19,21 +19,38 @@
 
 #include "dispatcher.h"
 #include "hprof_storage.h"
+#include "object_fields_columns.h"
 
 namespace hprof {
     class MainWindow : public Gtk::ApplicationWindow {
     public:
         MainWindow(EventsDisparcher& dispatcher, HprofStorage& hprof_storage);
     private:
+        void configure_header();
+        void configure_progress_screen();
+        void configure_query_screen(int32_t window_width, int32_t window_height);
+
         void on_hprof_start_load(const std::string& file_name);
         void on_hprof_loading_progress(const std::string& action, double fraction);
         void on_hprof_stop_load();
+        void on_query_result(const std::vector<heap_item_ptr_t>& result, u_int64_t seq_number);
     private:
         EventsDisparcher& _dispatcher;
         HprofStorage& _hprof_storage;
+        
         Gtk::HeaderBar _header_bar;
+
+        // Hprof loading progress screen
         Gtk::Box _progress_box;
         Gtk::ProgressBar _progress_bar;
-        // Gtk::Spinner _spinner;
+
+        // Query editor
+        Gtk::Paned _query_box;
+        Glib::RefPtr<Gtk::TextBuffer> _query_text_buffer;
+        u_int64_t _query_seq_number;
+
+        // Result view
+        ObjectFieldsColumns _result_columns;
+        Glib::RefPtr<Gtk::TreeStore> _result_model_store;
     };
 }
