@@ -23,7 +23,8 @@ using namespace hprof;
 enum : int32_t {
     SIGNAL_START_LOADING = 1,
     SIGNAL_PROGRESS_LOADING = 2,
-    SIGNAL_STOP_LOADING = 3
+    SIGNAL_STOP_LOADING = 3,
+    SIGNAL_QUERY_RESULT = 4
 };
 
 struct HprofFileLoadStartedSignal : public StorageSignal {
@@ -43,6 +44,14 @@ struct HprofFileLoadFinishedSignal : public StorageSignal {
     HprofFileLoadFinishedSignal() : StorageSignal(SIGNAL_STOP_LOADING) {}
 };
 
+struct QueryResultSignal : public StorageSignal {
+    QueryResultSignal(std::unique_ptr<std::vector<heap_item_ptr_t>>&& result, u_int64_t seq_number) : 
+        StorageSignal(SIGNAL_QUERY_RESULT), result(std::move(result)), seq_number(seq_number) {}
+
+    std::unique_ptr<std::vector<heap_item_ptr_t>> result;
+    u_int64_t seq_number;
+};
+
 HprofStorage::HprofStorage(std::unique_ptr<data_reader_factory_t>&& factory) : _reader_factory(std::move(factory)) {
 }
 
@@ -52,6 +61,9 @@ void HprofStorage::emit(const Action& action) {
     switch (action.type) {
         case Action::OpenFile:
             load_hprof(reinterpret_cast<const OpenFileAction *>(&action));
+            break;
+        case Action::ExecuteQuery:
+            execute_query(reinterpret_cast<const ExecuteQueryAction *>(&action));
             break;
     }
 }
@@ -79,6 +91,11 @@ void HprofStorage::on_process_signal(const StorageSignal* signal) {
         case SIGNAL_STOP_LOADING:
             _signal_stop_loading.emit();
             break;
+        case SIGNAL_QUERY_RESULT: {
+            const QueryResultSignal* s = static_cast<const QueryResultSignal*>(signal);
+            _signal_query_succeed.emit(*(s->result), s->seq_number);
+            break;
+        }
     }
 }
 
@@ -97,4 +114,13 @@ void HprofStorage::on_loading_progress(file_t::phase_t phase, u_int32_t progress
     }
 
     send_signal(std::make_unique<HprofFileLoadProgressSignal>(action, static_cast<double>(progress) / 100.));
+}
+
+void HprofStorage::execute_query(const ExecuteQueryAction* action) {
+    if (_heap_profile != nullptr && _query_parser.parse(action->query_text)) {
+        auto result = std::make_unique<std::vector<heap_item_ptr_t>>();
+        _heap_profile->query(_query_parser.query(), *result);
+        send_signal(std::make_unique<QueryResultSignal>(std::move(result), action->seq_number));
+    }
+    // TODO: send errors back to ui
 }
