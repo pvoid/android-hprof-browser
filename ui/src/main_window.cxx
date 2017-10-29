@@ -51,6 +51,25 @@ MainWindow::MainWindow(EventsDisparcher& dispatcher, HprofStorage& hprof_storage
 void MainWindow::configure_header() {
     _header_bar.set_title(g_window_name);
     _header_bar.set_show_close_button(true);
+
+    auto toolbar = Gtk::manage(new Gtk::Toolbar());
+    toolbar->show();
+
+    auto open_button = Gtk::manage(new Gtk::MenuToolButton());
+    open_button->set_tooltip_text("Open heap profile");
+    open_button->set_icon_name("document-open");
+    open_button->set_visible(true);
+    toolbar->append(*open_button, sigc::mem_fun(*this, &MainWindow::on_open_hprof_file));
+
+    _execute_query_button.set_tooltip_text("Execute query");
+    _execute_query_button.set_icon_name("media-playback-start");
+    _execute_query_button.set_visible(true);
+    _execute_query_button.set_sensitive(false);
+    _execute_query_button.set_margin_start(20);
+    toolbar->append(_execute_query_button, sigc::mem_fun(*this, &MainWindow::on_execute_query));
+
+    _header_bar.pack_start(*toolbar);
+
     _header_bar.show();
 }
 
@@ -71,6 +90,7 @@ void MainWindow::configure_query_screen(int32_t window_width, int32_t window_hei
 
     auto query_view = Gtk::manage(new Gtk::TextView());
     query_view->set_buffer(_query_text_buffer);
+    query_view->set_monospace(true);
     query_view->set_border_width(10);
     query_view->set_wrap_mode(Gtk::WRAP_WORD);
     query_view->show();
@@ -109,13 +129,21 @@ void MainWindow::on_hprof_start_load(const std::string& file_name) {
     _header_bar.set_title(name);
     _header_bar.set_subtitle(g_window_name);
  
+    _query_seq_number = 0;
+    _query_text_buffer->set_text("");
+    _result_model_store->clear();
     _query_box.hide();
+
+    _execute_query_button.set_sensitive(false);
+
     _progress_box.show();
 }
 
 void MainWindow::on_hprof_stop_load() {
     _progress_box.hide();
+    
     _query_box.show();
+    _execute_query_button.set_sensitive(true);
 }
 
 void MainWindow::on_hprof_loading_progress(const std::string& action, double fraction) {
@@ -130,4 +158,38 @@ void MainWindow::on_query_result(const std::vector<heap_item_ptr_t>& result, u_i
     for (auto& item : result) {
         _result_columns.assign(_result_model_store, *item);
     }
+}
+
+void MainWindow::on_open_hprof_file() {
+    Gtk::FileChooserDialog dialog {"Please choose heap profile file", Gtk::FILE_CHOOSER_ACTION_OPEN};
+    
+    dialog.set_transient_for(*this);
+    dialog.add_button("_Cancel", Gtk::RESPONSE_CANCEL);
+    dialog.add_button("Select", Gtk::RESPONSE_OK);
+    
+    auto filter_hprof = Gtk::FileFilter::create();
+    filter_hprof->set_name("Heap profiles files");
+    filter_hprof->add_pattern("*.hprof");
+    dialog.add_filter(filter_hprof);
+
+    auto filter_any = Gtk::FileFilter::create();
+    filter_any->set_name("Any files");
+    filter_any->add_pattern("*");
+    dialog.add_filter(filter_any);
+
+    int result = dialog.run();
+    switch (result) {
+        case Gtk::RESPONSE_OK: {
+            auto action = OpenFileAction::create(dialog.get_filename());
+            _dispatcher.emit(std::move(action));
+            break;
+        }
+    }
+}
+
+void MainWindow::on_execute_query() {
+    auto query_text = _query_text_buffer->get_text();
+    if (query_text.empty()) return;
+
+    _dispatcher.emit(ExecuteQueryAction::create(std::string { query_text.c_str() }, ++_query_seq_number));
 }

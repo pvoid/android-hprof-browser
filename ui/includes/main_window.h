@@ -25,11 +25,14 @@ namespace hprof {
     class MainWindow : public Gtk::ApplicationWindow {
     public:
         MainWindow(EventsDisparcher& dispatcher, HprofStorage& hprof_storage);
+
+        void on_open_hprof_file();
     private:
         void configure_header();
         void configure_progress_screen();
         void configure_query_screen(int32_t window_width, int32_t window_height);
 
+        void on_execute_query();
         void on_hprof_start_load(const std::string& file_name);
         void on_hprof_loading_progress(const std::string& action, double fraction);
         void on_hprof_stop_load();
@@ -38,7 +41,9 @@ namespace hprof {
         EventsDisparcher& _dispatcher;
         HprofStorage& _hprof_storage;
         
+        // Header and Toolbar
         Gtk::HeaderBar _header_bar;
+        Gtk::ToolButton _execute_query_button;
 
         // Hprof loading progress screen
         Gtk::Box _progress_box;

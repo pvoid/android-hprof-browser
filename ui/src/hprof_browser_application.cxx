@@ -56,28 +56,5 @@ void HprofBrowserApplication::on_quit() {
 }
 
 void HprofBrowserApplication::on_open_file() {
-    Gtk::FileChooserDialog dialog {"Please choose heap profile file", Gtk::FILE_CHOOSER_ACTION_OPEN};
-
-    dialog.set_transient_for(_main_window);
-    dialog.add_button("_Cancel", Gtk::RESPONSE_CANCEL);
-    dialog.add_button("Select", Gtk::RESPONSE_OK);
-  
-    auto filter_hprof = Gtk::FileFilter::create();
-    filter_hprof->set_name("Heap profiles files");
-    filter_hprof->add_pattern("*.hprof");
-    dialog.add_filter(filter_hprof);
-
-    auto filter_any = Gtk::FileFilter::create();
-    filter_any->set_name("Any files");
-    filter_any->add_pattern("*");
-    dialog.add_filter(filter_any);
-
-    int result = dialog.run();
-    switch (result) {
-        case Gtk::RESPONSE_OK: {
-            auto action = OpenFileAction::create(dialog.get_filename());
-            _dispatcher->emit(std::move(action));
-            break;
-        }
-    }
+    _main_window.on_open_hprof_file();
 }
