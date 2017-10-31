@@ -17,7 +17,7 @@ cmake_minimum_required(VERSION 3.5)
 project(hprof-browser C CXX)
 
 find_package(PkgConfig)
-pkg_check_modules(GTKMM gtkmm-3.0)
+pkg_check_modules(GTKMM gtkmm-3.0>=3.20 REQUIRED)
 
 set(PROJECT_SOURCE_FILES
     ${PROJECT_SOURCE_DIR}/src/dispatcher.cxx

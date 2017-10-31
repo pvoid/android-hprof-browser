@@ -31,6 +31,8 @@ namespace hprof {
             view.append_column("Name", name);
             view.append_column("Value", value);
             view.append_column("Type", type);
+
+            view.get_column(0)->set_sort_column(name);
         }
 
         void assign(Glib::RefPtr<Gtk::TreeStore> model, const heap_item_t& item) const;
