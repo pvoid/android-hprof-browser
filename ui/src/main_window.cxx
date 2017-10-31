@@ -43,9 +43,10 @@ MainWindow::MainWindow(EventsDisparcher& dispatcher, HprofStorage& hprof_storage
     add(*root_box);
 
     _hprof_storage.on_start_loading().connect(sigc::mem_fun1(*this, &MainWindow::on_hprof_start_load));
-    _hprof_storage.on_progress_loading().connect(sigc::mem_fun2(*this, &MainWindow::on_hprof_loading_progress));
+    _hprof_storage.on_progress_loading().connect(sigc::mem_fun(*this, &MainWindow::on_hprof_loading_progress));
     _hprof_storage.on_stop_loading().connect(sigc::mem_fun(*this, &MainWindow::on_hprof_stop_load));
     _hprof_storage.on_query_succeed().connect(sigc::mem_fun(*this, &MainWindow::on_query_result));
+    _hprof_storage.on_fetch_object_result().connect(sigc::mem_fun(*this, &MainWindow::on_object_fetch_result));
 }
 
 void MainWindow::configure_header() {
@@ -104,13 +105,12 @@ void MainWindow::configure_query_screen(int32_t window_width, int32_t window_hei
 
     _result_model_store = Gtk::TreeStore::create(_result_columns);
 
-    auto results_view = Gtk::manage(new Gtk::TreeView());
-    results_view->set_model(_result_model_store);
-    _result_columns.add_columns(*results_view);
-    results_view->show();
+    _results_view.signal_test_expand_row().connect(sigc::mem_fun(*this, &MainWindow::on_test_expand_row));
+    _result_columns.add_columns(_results_view);
+    _results_view.show();
 
     auto results_scroll_view = Gtk::manage(new Gtk::ScrolledWindow());
-    results_scroll_view->add(*results_view);
+    results_scroll_view->add(_results_view);
     results_scroll_view->show();
 
     _query_box.add2(*results_scroll_view);
@@ -154,10 +154,14 @@ void MainWindow::on_hprof_loading_progress(const std::string& action, double fra
 void MainWindow::on_query_result(const std::vector<heap_item_ptr_t>& result, u_int64_t seq_number) {
     if (_query_seq_number != seq_number) return;
 
+    std::cout << "Query results: " << result.size() << std::endl;
+
+    _results_view.unset_model();
     _result_model_store->clear();
     for (auto& item : result) {
         _result_columns.assign(_result_model_store, *item);
     }
+    _results_view.set_model(_result_model_store);
 }
 
 void MainWindow::on_open_hprof_file() {
@@ -192,4 +196,18 @@ void MainWindow::on_execute_query() {
     if (query_text.empty()) return;
 
     _dispatcher.emit(ExecuteQueryAction::create(std::string { query_text.c_str() }, ++_query_seq_number));
+}
+
+bool MainWindow::on_test_expand_row(const Gtk::TreeModel::iterator& row, const Gtk::TreeModel::Path& path) {
+    EventsDisparcher* dispatcher = &_dispatcher;
+    _result_columns.fetch_objects(_result_model_store, *row, [dispatcher] (auto path, auto request_id, auto object_id) {
+        dispatcher->emit(FetchObjectAction::create(object_id, request_id, path));
+    });
+    return false;
+}
+
+void MainWindow::on_object_fetch_result(u_int64_t request_id, const Gtk::TreeModel::Path& path, const heap_item_ptr_t& item) {
+    auto it = _result_model_store->get_iter(path);
+    if (!it || item == nullptr) return;
+    _result_columns.assign_value(_result_model_store, *it, request_id, *item);
 }

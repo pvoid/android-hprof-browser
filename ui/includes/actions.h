@@ -19,12 +19,14 @@
 
 #include <string>
 #include <memory>
+#include <gtkmm.h>
 
 namespace hprof {
     struct Action {
         enum action_type_t {
             OpenFile,
-            ExecuteQuery
+            ExecuteQuery,
+            FetchObject
         } type;
 
         Action(action_type_t action) : type(action) {}
@@ -44,6 +46,19 @@ namespace hprof {
 
         static std::unique_ptr<Action> create(const std::string& query, u_int64_t seq_number) { 
             return std::make_unique<ExecuteQueryAction>(std::move(query), seq_number); 
+        }
+    };
+
+    struct FetchObjectAction : public Action {
+
+        FetchObjectAction(jvm_id_t object_id, u_int64_t seq_number, const Gtk::TreeModel::Path& path) : Action(FetchObject), seq_number(seq_number), object_id(object_id), path(path) {}
+
+        u_int64_t seq_number;
+        jvm_id_t object_id;
+        Gtk::TreeModel::Path path;
+
+        static std::unique_ptr<Action> create(jvm_id_t object_id, u_int64_t seq_number, const Gtk::TreeModel::Path& path) {
+            return std::make_unique<FetchObjectAction>(object_id, seq_number, path);
         }
     };
 }

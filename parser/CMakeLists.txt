@@ -16,7 +16,7 @@
 cmake_minimum_required(VERSION 3.5)
 project(hprof-parser C CXX)
 
-find_package(BISON REQUIRED)
+find_package(BISON 3.0.4 REQUIRED)
 
 set(BISON_OUTPUT        ${PROJECT_SOURCE_DIR}/src/generated/language_parser.cxx)
 set(BISON_OUTPUT_PARSER ${PROJECT_SOURCE_DIR}/includes/generated/language_parser.cxx)
@@ -37,7 +37,7 @@ add_custom_command(
     COMMENT "Move language parser"
 )
 
-find_package(FLEX REQUIRED)
+find_package(FLEX 2.6.1 REQUIRED)
 set(FLEX_OUTPUT ${PROJECT_SOURCE_DIR}/src/generated/language_scanner.cxx)
 add_custom_command(
   OUTPUT ${FLEX_OUTPUT}
