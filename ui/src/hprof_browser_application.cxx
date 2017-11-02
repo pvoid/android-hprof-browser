@@ -23,7 +23,7 @@ using namespace hprof;
 
 HprofBrowserApplication::HprofBrowserApplication() : 
     Application("com.github.pvoid.android-hprof-browser"), _dispatcher(EventsDisparcher::create()), 
-    _hprof_storage(data_reader_factory_t::create()), _main_window(*_dispatcher, _hprof_storage) {
+    _hprof_storage(data_reader_factory_t::create()), _main_window(*_dispatcher, _hprof_storage, _treeview_storage) {
 }
 
 void HprofBrowserApplication::on_startup() {
@@ -40,6 +40,7 @@ void HprofBrowserApplication::on_startup() {
 
 void HprofBrowserApplication::on_activate() {
     _dispatcher->subscribe(&_hprof_storage);
+    _dispatcher->subscribe(&_treeview_storage);
     _dispatcher->start();
 
     add_window(_main_window);

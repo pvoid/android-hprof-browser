@@ -25,7 +25,7 @@ namespace hprof {
             add(_name);
             add(_type);
             add(_value);
-            add(_object_id);
+            add(_item);
             add(_data_fetched);
             add(_fetch_request_id);
         }
@@ -39,31 +39,41 @@ namespace hprof {
             view.get_column(2)->set_sort_column(_type);
         }
 
-        void assign(Glib::RefPtr<Gtk::TreeStore> model, const heap_item_t& item) const;
+        void assign(Glib::RefPtr<Gtk::TreeStore> model, const heap_item_ptr_t& item) const;
 
-        void assign_value(const Glib::RefPtr<Gtk::TreeStore> model, const Gtk::TreeModel::Row& row, u_int64_t request_id, const heap_item_t& item);
+        void assign_value(const Glib::RefPtr<Gtk::TreeStore> model, const Gtk::TreeModel::Row& row, u_int64_t request_id, const heap_item_ptr_t& item);
 
         template<typename Callback>
-        void fetch_objects(const Glib::RefPtr<Gtk::TreeStore> model, const Gtk::TreeModel::Row& row, const Callback& callback) {
-            for (auto it = std::begin(row.children()); it != std::end(row.children()); ++it) {
-                if ((*it)[_data_fetched] || (*it)[_fetch_request_id] != 0 || (*it)[_object_id] == 0) continue;
-                
-                auto request_id = ++_last_request_id;
-                callback(model->get_path(it), request_id, (*it)[_object_id]);
-                (*it)[_fetch_request_id] = request_id;
+        void populate_instance_row(const Glib::RefPtr<Gtk::TreeStore> model, const Gtk::TreeModel::Row& row, const Callback& callback) {
+            if (row[_data_fetched]) return;
+
+            auto first_row = row.children().begin();
+            auto instance = static_cast<const instance_info_t *>(*row[_item]);
+            const auto& fields = instance->fields();
+            auto field = std::begin(fields);
+            assign(*first_row, *field);
+            callback(model->get_path(first_row), ++_last_request_id, instance->id());
+            (*first_row)[_fetch_request_id] = _last_request_id;
+            for (++field; field != std::end(fields); ++field) {
+                auto field_row = model->append(row.children());
+                assign(*field_row, *field);
+                if (field->type() == jvm_type_t::JVM_TYPE_OBJECT) {
+                    callback(model->get_path(field_row), ++_last_request_id, static_cast<jvm_id_t>(*field));
+                    (*field_row)[_fetch_request_id] = _last_request_id;
+                }
             }
+            row[_data_fetched] = true;
         }
 
     private:
         void assign(Glib::RefPtr<Gtk::TreeStore> model, const Gtk::TreeModel::Row& row, const instance_info_t* instance) const;
         void assign(const Gtk::TreeModel::Row& row, const field_value_t& field) const;
-        void append_fields(Glib::RefPtr<Gtk::TreeStore> model, const Gtk::TreeModel::Row& row, const fields_values_t& fields) const;
     private:
         u_int64_t _last_request_id;
         Gtk::TreeModelColumn<Glib::ustring> _name;
         Gtk::TreeModelColumn<Glib::ustring> _type;
         Gtk::TreeModelColumn<Glib::ustring> _value;
-        Gtk::TreeModelColumn<jvm_id_t> _object_id;
+        Gtk::TreeModelColumn<heap_item_t*> _item;
         Gtk::TreeModelColumn<bool> _data_fetched;
         Gtk::TreeModelColumn<u_int64_t> _fetch_request_id;
     };

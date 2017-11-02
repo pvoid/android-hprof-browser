@@ -16,6 +16,7 @@
 #pragma once
 
 #include "hprof.h"
+#include "object_fields_columns.h"
 
 #include <string>
 #include <memory>
@@ -26,7 +27,8 @@ namespace hprof {
         enum action_type_t {
             OpenFile,
             ExecuteQuery,
-            FetchObject
+            FetchObject,
+            FillTreeView,
         } type;
 
         Action(action_type_t action) : type(action) {}
@@ -59,6 +61,19 @@ namespace hprof {
 
         static std::unique_ptr<Action> create(jvm_id_t object_id, u_int64_t seq_number, const Gtk::TreeModel::Path& path) {
             return std::make_unique<FetchObjectAction>(object_id, seq_number, path);
+        }
+    };
+
+    struct FillTreeViewAction : public Action {
+        FillTreeViewAction(Glib::RefPtr<Gtk::TreeStore>& store, ObjectFieldsColumns* columns, const std::vector<heap_item_ptr_t>& items) : 
+            Action(FillTreeView), store(store), items(items), columns(columns) {}
+
+        Glib::RefPtr<Gtk::TreeStore> store;
+        std::vector<heap_item_ptr_t> items;
+        ObjectFieldsColumns* columns;
+
+        static std::unique_ptr<Action> create(Glib::RefPtr<Gtk::TreeStore>& store, ObjectFieldsColumns* columns, const std::vector<heap_item_ptr_t>& items) {
+            return std::make_unique<FillTreeViewAction>(store, columns, items);
         }
     };
 }

@@ -14,6 +14,7 @@
 ///  limitations under the License.
 ///
 #include "storage.h"
+#include <cassert>
 
 using namespace hprof;
 
@@ -24,6 +25,7 @@ SignalsHelper::SignalsHelper() {
 SignalsHelper::~SignalsHelper() {}
 
 void SignalsHelper::send_signal(std::unique_ptr<StorageSignal>&& signal) {
+    assert(signal != nullptr);
     std::unique_lock<std::mutex> lock { _mutex };
     _signals.push(std::move(signal));
     _dispatcher.emit();
