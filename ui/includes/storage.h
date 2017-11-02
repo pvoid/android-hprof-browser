@@ -30,7 +30,6 @@ namespace hprof {
 
     struct StorageSignal {
         int32_t signal;
-
         StorageSignal(int32_t signal) : signal(signal) {}
     };
 

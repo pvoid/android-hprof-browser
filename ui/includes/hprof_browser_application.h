@@ -17,6 +17,7 @@
 
 #include <gtkmm.h>
 #include "hprof_storage.h"
+#include "treeview_storage.h"
 #include "main_window.h"
 
 namespace hprof {
@@ -32,6 +33,8 @@ namespace hprof {
     private:
         std::unique_ptr<EventsDisparcher> _dispatcher;
         HprofStorage _hprof_storage;
+        TreeViewStorage _treeview_storage;
+
         MainWindow _main_window;
     };
 }

@@ -83,6 +83,8 @@ void HprofStorage::emit(const Action& action) {
         case Action::FetchObject:
             fetch_object(reinterpret_cast<const FetchObjectAction *>(&action));
             break;
+        default:
+            break;
     }
 }
 

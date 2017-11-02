@@ -23,6 +23,7 @@ set(PROJECT_SOURCE_FILES
     ${PROJECT_SOURCE_DIR}/src/dispatcher.cxx
     ${PROJECT_SOURCE_DIR}/src/storage.cxx
     ${PROJECT_SOURCE_DIR}/src/hprof_storage.cxx
+    ${PROJECT_SOURCE_DIR}/src/treeview_storage.cxx
     ${PROJECT_SOURCE_DIR}/src/hprof_browser_application.cxx
     ${PROJECT_SOURCE_DIR}/src/object_fields_columns.cxx
     ${PROJECT_SOURCE_DIR}/src/main_window.cxx

@@ -87,15 +87,18 @@ inline Glib::ustring get_field_value(const field_value_t& field) {
     }
 }
 
-void ObjectFieldsColumns::assign(Glib::RefPtr<Gtk::TreeStore> model, const heap_item_t& item) const {
+void ObjectFieldsColumns::assign(Glib::RefPtr<Gtk::TreeStore> model, const heap_item_ptr_t& item) const {
     if (!model) {
         return;
     }
 
-    switch (item.type()) {
-        case heap_item_t::Object:
-            assign(model, *model->append(), static_cast<const instance_info_t*>(item));
+    switch (item->type()) {
+        case heap_item_t::Object: {
+            auto row = model->append();
+            assign(model, *row, static_cast<const instance_info_t*>(*item));
+            (*row)[_item] = item.get();
             break;
+        }
     }
 }
 
@@ -105,13 +108,11 @@ void ObjectFieldsColumns::assign(Glib::RefPtr<Gtk::TreeStore> model, const Gtk::
         row[_type] = instance->get_class()->super()->name();
     }
     row[_value] = get_id_string(instance->id());
+    row[_data_fetched] = false;
 
-    append_fields(model, row, instance->fields());
-}
-
-void ObjectFieldsColumns::append_fields(Glib::RefPtr<Gtk::TreeStore> model, const Gtk::TreeModel::Row& row, const fields_values_t& fields) const {
-    for (auto& field : fields) {
-        assign(*model->append(row.children()), field);
+    if (instance->fields().count() > 0) {
+        // Empty row to show expand mark
+        model->append(row.children());
     }
 }
 
@@ -120,39 +121,43 @@ void ObjectFieldsColumns::assign(const Gtk::TreeModel::Row& row, const field_val
     row[_type] = get_type_name(field.type());
     row[_value] = get_field_value(field);
     if (field.type() == jvm_type_t::JVM_TYPE_OBJECT) {
-        row[_object_id] = static_cast<jvm_id_t>(field);
         row[_data_fetched] = false;
     } else {
-        row[_object_id] = 0;
         row[_data_fetched] = true;
     }
     row[_fetch_request_id] = 0;
 }
 
-void ObjectFieldsColumns::assign_value(const Glib::RefPtr<Gtk::TreeStore> model, const Gtk::TreeModel::Row& row, u_int64_t request_id, const heap_item_t& item) {
+void ObjectFieldsColumns::assign_value(const Glib::RefPtr<Gtk::TreeStore> model, const Gtk::TreeModel::Row& row, u_int64_t request_id, const heap_item_ptr_t& item) {
+
     if (row[_fetch_request_id] != request_id) return;
 
-    switch (item.type()) {
+    switch (item->type()) {
         case heap_item_t::Object: {
-            auto instance = static_cast<const instance_info_t *>(item);
+            auto instance = static_cast<const instance_info_t *>(*item);
             row[_type] = instance->get_class()->name();
-            append_fields(model, row, instance->fields());
+            row[_data_fetched] = false;
+            if (instance->fields().count() > 0) {
+                // Empty row to show expand mark
+                model->append(row.children());
+            }
             break;
         }
         case heap_item_t::String: {
-            row[_value] = "\"" + static_cast<const string_info_t *>(item)->value() + "\"";
+            row[_value] = "\"" + static_cast<const string_info_t *>(*item)->value() + "\"";
             row[_type] = "string";
             break;
         }
         case heap_item_t::PrimitivesArray: {
-            auto array = static_cast<const primitives_array_info_t *>(item);
+            auto array = static_cast<const primitives_array_info_t *>(*item);
             row[_type] = get_type_name(array->item_type()) + "[" + std::to_string(array->length()) + "]" ;
             break;
         }
         case heap_item_t::ObjectsArray: {
-            auto array = static_cast<const objects_array_info_t *>(item);
+            auto array = static_cast<const objects_array_info_t *>(*item);
             row[_type] = "object[" + std::to_string(array->length()) + "]";
             break;
         }
     }
+    row[_item] = item.get();
 }
