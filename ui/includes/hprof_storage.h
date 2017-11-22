@@ -33,17 +33,19 @@ namespace hprof {
         using type_signal_progress_loading = sigc::signal<void, const std::string&, double>;
         using type_signal_stop_loading = sigc::signal<void>;
         using type_signal_query_succeed = sigc::signal<void, const std::vector<heap_item_ptr_t>&, u_int64_t>;
+        using type_signal_query_failed = sigc::signal<void, const std::vector<parse_error>&, u_int64_t>;
         using type_signal_fetch_object_result = sigc::signal<void, u_int64_t, const Gtk::TreeModel::Path&, const heap_item_ptr_t&>;
     public:
         HprofStorage(std::unique_ptr<data_reader_factory_t>&& factory);
         virtual ~HprofStorage();
         void emit(const Action& action);
         
-        type_signal_start_loading on_start_loading() { return _signal_start_loading; }
-        type_signal_progress_loading on_progress_loading() { return _signal_progress_loading; }
-        type_signal_stop_loading on_stop_loading() { return _signal_stop_loading;  }
-        type_signal_query_succeed on_query_succeed() { return _signal_query_succeed; }
-        type_signal_fetch_object_result on_fetch_object_result() { return _signal_fetch_object_result; }
+        type_signal_start_loading& on_start_loading() { return _signal_start_loading; }
+        type_signal_progress_loading& on_progress_loading() { return _signal_progress_loading; }
+        type_signal_stop_loading& on_stop_loading() { return _signal_stop_loading;  }
+        type_signal_query_succeed& on_query_succeed() { return _signal_query_succeed; }
+        type_signal_query_failed& on_query_failed() { return _signal_query_failed; }
+        type_signal_fetch_object_result& on_fetch_object_result() { return _signal_fetch_object_result; }
     protected:
         void on_process_signal(const StorageSignal* signal);
     private:
@@ -61,6 +63,7 @@ namespace hprof {
         type_signal_progress_loading _signal_progress_loading;
         type_signal_stop_loading _signal_stop_loading;
         type_signal_query_succeed _signal_query_succeed;
+        type_signal_query_failed _signal_query_failed;
         type_signal_fetch_object_result _signal_fetch_object_result;
     };
 }

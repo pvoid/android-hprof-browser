@@ -38,6 +38,7 @@ namespace hprof {
         void on_hprof_loading_progress(const std::string& action, double fraction);
         void on_hprof_stop_load();
         void on_query_result(const std::vector<heap_item_ptr_t>& result, u_int64_t seq_number);
+        void on_query_failed(const std::vector<parse_error>& errors, u_int64_t seq_number);
         void on_object_fetch_result(u_int64_t request_id, const Gtk::TreeModel::Path& path, const heap_item_ptr_t& item);
         void on_treeview_fill_progress(double fraction);
         void on_treeview_filled();

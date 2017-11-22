@@ -26,6 +26,7 @@ bool language_driver::parse (const std::string& text) {
     std::istringstream in { text};
     language_scanner scanner { &in };
     language_parser parser(*this, scanner);
+    _errors.clear();
     return parser.parse() == 0;
 }
 
@@ -41,12 +42,10 @@ void language_driver::filter(filter_t* filter) {
     _query.filter.reset(filter);
 }
 
-// TODO: store errors
 void language_driver::error (const hprof::location& loc, const std::string& msg) {
-    std::cerr << loc << ": " << msg << std::endl;
+    _errors.emplace_back(loc, msg);
 }
 
-// TODO: store errors
 void language_driver::error (const std::string& msg) {
-    std::cerr << msg << std::endl;
+    _errors.emplace_back(msg);
 }
