@@ -49,6 +49,7 @@ MainWindow::MainWindow(EventsDisparcher& dispatcher, HprofStorage& hprof_storage
     _hprof_storage.on_progress_loading().connect(sigc::mem_fun(*this, &MainWindow::on_hprof_loading_progress));
     _hprof_storage.on_stop_loading().connect(sigc::mem_fun(*this, &MainWindow::on_hprof_stop_load));
     _hprof_storage.on_query_succeed().connect(sigc::mem_fun(*this, &MainWindow::on_query_result));
+    _hprof_storage.on_query_failed().connect(sigc::mem_fun(*this, &MainWindow::on_query_failed));
     _hprof_storage.on_fetch_object_result().connect(sigc::mem_fun(*this, &MainWindow::on_object_fetch_result));
 
     _treeview_storage.on_data_filled().connect(sigc::mem_fun(*this, &MainWindow::on_treeview_filled));
@@ -160,6 +161,23 @@ void MainWindow::on_query_result(const std::vector<heap_item_ptr_t>& result, u_i
 
     set_status("Building result list");
     _dispatcher.emit(FillTreeViewAction::create(_result_model_store, &_result_columns, result));
+}
+
+void MainWindow::on_query_failed(const std::vector<parse_error>& errors, u_int64_t seq_number) {
+    if (_query_seq_number != seq_number) return;
+
+    hide_pulse_progress();
+    // Build and show error message
+    assert(errors.size() > 0);
+    auto& error = errors[0];
+    std::stringstream message;
+    message << error.location.begin.column << ":" << error.location.begin.line << " " << error.message;
+    set_status(message.str());
+
+    // Place cursor on error start
+    auto it = _query_text_buffer->begin();
+    it.forward_chars(error.location.begin.column - 1);
+    _query_text_buffer->place_cursor(it);
 }
 
 void MainWindow::on_treeview_fill_progress(double fraction) {

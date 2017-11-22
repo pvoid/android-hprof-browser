@@ -18,7 +18,17 @@
 #include "hprof.h"
 #include "language_parser.h"
 
+#include <vector>
+
 namespace hprof {
+    struct parse_error {
+        std::string message;
+        hprof::location location;
+
+        parse_error(const hprof::location& location, const std::string& message) : location(location), message(message) {}
+        parse_error(const std::string& message) : message(message) {}
+    };
+
     class language_driver {
     public:
         language_driver() {}
@@ -34,7 +44,10 @@ namespace hprof {
         void error(const std::string& msg);
 
         const query_t& query() const { return _query; }
+        bool has_errors() const { return !_errors.empty(); }
+        const std::vector<parse_error>& errors() const { return _errors; }
     private:
         query_t _query;
+        std::vector<parse_error> _errors;
     };
 }

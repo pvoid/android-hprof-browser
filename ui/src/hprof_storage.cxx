@@ -31,7 +31,8 @@ enum : int32_t {
     SIGNAL_PROGRESS_LOADING = 2,
     SIGNAL_STOP_LOADING = 3,
     SIGNAL_QUERY_RESULT = 4,
-    SIGNAL_FETCH_OBJECT_RESULT = 5,
+    SIGNAL_QUERY_FAILED = 5,
+    SIGNAL_FETCH_OBJECT_RESULT = 6,
 };
 
 struct HprofFileLoadStartedSignal : public StorageSignal {
@@ -56,6 +57,14 @@ struct QueryResultSignal : public StorageSignal {
         StorageSignal(SIGNAL_QUERY_RESULT), result(std::move(result)), seq_number(seq_number) {}
 
     std::unique_ptr<std::vector<heap_item_ptr_t>> result;
+    u_int64_t seq_number;
+};
+
+struct QueryFailedSignal : public StorageSignal {
+    QueryFailedSignal(const std::vector<parse_error>& errors, u_int64_t seq_number) :
+        StorageSignal(SIGNAL_QUERY_FAILED), errors(errors), seq_number(seq_number) {}
+    
+    std::vector<parse_error> errors;
     u_int64_t seq_number;
 };
 
@@ -122,6 +131,11 @@ void HprofStorage::on_process_signal(const StorageSignal* signal) {
             _signal_query_succeed.emit(*(s->result), s->seq_number);
             break;
         }
+        case SIGNAL_QUERY_FAILED: {
+            auto s = static_cast<const QueryFailedSignal*>(signal);
+            _signal_query_failed.emit(s->errors, s->seq_number);
+            break;
+        }
         case SIGNAL_FETCH_OBJECT_RESULT: {
             auto s = static_cast<const FetchObjectResultSignal*>(signal);
             _signal_fetch_object_result.emit(s->seq_number, s->path, s->item);
@@ -151,8 +165,9 @@ void HprofStorage::execute_query(const ExecuteQueryAction* action) {
         auto result = std::make_unique<std::vector<heap_item_ptr_t>>();
         _heap_profile->query(_query_parser.query(), *result);
         send_signal(std::make_unique<QueryResultSignal>(std::move(result), action->seq_number));
+    } else if (_query_parser.has_errors()) {
+        send_signal(std::make_unique<QueryFailedSignal>(_query_parser.errors(), action->seq_number));
     }
-    // TODO: send errors back to ui
 }
 
 void HprofStorage::fetch_object(const FetchObjectAction* action) {
