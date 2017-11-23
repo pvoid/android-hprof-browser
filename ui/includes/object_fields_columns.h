@@ -52,8 +52,10 @@ namespace hprof {
             const auto& fields = instance->fields();
             auto field = std::begin(fields);
             assign(*first_row, *field);
-            callback(model->get_path(first_row), ++_last_request_id, instance->id());
-            (*first_row)[_fetch_request_id] = _last_request_id;
+            if (field->type() == jvm_type_t::JVM_TYPE_OBJECT) {
+                callback(model->get_path(first_row), ++_last_request_id, static_cast<jvm_id_t>(*field));
+                (*first_row)[_fetch_request_id] = _last_request_id;
+            }
             for (++field; field != std::end(fields); ++field) {
                 auto field_row = model->append(row.children());
                 assign(*field_row, *field);
